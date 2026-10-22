@@ -1,0 +1,10 @@
+#pragma once
+
+#include <string_view>
+#include <REL/Relocation.h>
+
+namespace Plugin
+{
+	constexpr std::string_view NAME = "@PROJECT_NAME@";
+	constexpr REL::Version VERSION{ @PROJECT_VERSION_MAJOR@, @PROJECT_VERSION_MINOR@, @PLUGIN_VERSION_PATCH@, 0 };
+}

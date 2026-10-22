@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "water-on-steroids",
+  "version-string": "1.0.0",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    },
+    "directxmath",
+    "directxtk",
+    "detours",
+    "fmt",
+    "nlohmann-json",
+    "rapidcsv",
+    "simpleini",
+    "toml11"
+  ],
+  "overrides": [
+    {
+      "name": "detours",
+      "version": "4.0.1",
+      "port-version": 8
+    }
+  ]
+}

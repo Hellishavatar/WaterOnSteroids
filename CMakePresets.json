@@ -1,0 +1,21 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "release",
+      "displayName": "Water On Steroids - Release",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$penv{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static-md",
+        "CMAKE_CONFIGURATION_TYPES": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "release", "configurePreset": "release", "configuration": "Release" }
+  ]
+}
