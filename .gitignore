@@ -1,0 +1,115 @@
+# ==============================================================================
+# Build & Package Outputs
+# ==============================================================================
+build/
+build-*/
+bin/
+out/
+dist/
+*.zip
+*.tar.gz
+*.7z
+
+# Intermediate / Binary Files
+*.o
+*.obj
+*.so
+*.so.*
+*.a
+*.lib
+*.dll
+*.dylib
+*.exe
+*.out
+*.app
+*.ilk
+*.pdb
+*.exp
+
+# ==============================================================================
+# CMake & Build Systems
+# ==============================================================================
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CMakeUserPresets.json
+Makefile
+
+# Compiler & Tooling
+compile_commands.json
+compile_flags.txt
+.cache/
+.clangd/
+
+# ==============================================================================
+# Dependencies & Package Managers
+# ==============================================================================
+extern/
+_deps/
+vcpkg_installed/
+vcpkg_packages/
+
+# ==============================================================================
+# IDEs & Editors
+# ==============================================================================
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.VC.db
+*.opendb
+*.sln.docstates
+
+# VS Code / JetBrains / Xcode
+.vscode/
+.idea/
+cmake-build-*/
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+
+# ==============================================================================
+# Diagnostics & Logs
+# ==============================================================================
+*.log
+*.crash
+core
+core.*
+vgcore.*
+gmon.out
+callgrind.out.*
+Testing/
+*.gcda
+*.gcno
+*.gcov
+Coverage/
+coverage.info
+
+# ==============================================================================
+# OS & Editor Artifacts
+# ==============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+$RECYCLE.BIN/
+*~
+*.swp
+*.bak
+
+# REA / Ghidra analysis snapshots
+.rea/
+
+# ==============================================================================
+# Local tooling
+# ==============================================================================
+.claude/
+CLAUDE.local.md
+__pycache__/
+*.py[cod]
+*.iobj
+*.ipdb
+*.aps
