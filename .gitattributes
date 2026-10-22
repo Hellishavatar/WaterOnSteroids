@@ -1,0 +1,27 @@
+# Set default behavior to use LF line endings
+* text=auto eol=lf
+
+# Force text files to always use LF
+*.cpp text eol=lf
+*.h text eol=lf
+*.hpp text eol=lf
+*.c text eol=lf
+*.inl text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.cmake text eol=lf
+CMakeLists.txt text eol=lf
+*.ini text eol=lf
+
+# Windows scripts keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files
+*.zip binary
+*.dds binary
+*.nif binary
+*.dll binary
+*.exe binary
+*.lib binary
