@@ -516,6 +516,7 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
     bool rebuilt = false;
     RE::NiPointer<RE::TESWaterObject> matchedWater;
     RE::NiPointer<RE::BSTriShape>     matchedShape;
+    RE::BSShaderMaterial*             matchedMaterial = nullptr;
     RE::BSWaterShaderProperty*        waterShaderProp = nullptr;
 
     if (a_pass && a_pass->shaderProperty && a_pass->shaderProperty->material &&
@@ -535,6 +536,7 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
                 auto* property = matchedShape ? matchedShape->GetGeometryRuntimeData().shaderProperty.get() : nullptr;
                 if (property && property->material && property->material->GetType() == RE::BSShaderMaterial::Type::kWater) {
                     source = property->material;
+                    matchedMaterial = property->material;
                 }
             }
 
@@ -568,10 +570,18 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
         waterShaderProp->waterFlags.reset(RE::BSWaterShaderProperty::WaterFlag::kEnableFlowmap);
     }
 
+    RE::BSWaterShaderProperty* textureProperty = nullptr;
+    RE::BSShaderMaterial*      storedMaterial = nullptr;
+    if (distantWaterUpgraded && waterShaderProp && matchedMaterial && waterShaderProp->material != matchedMaterial) {
+        textureProperty = waterShaderProp;
+        storedMaterial = waterShaderProp->material;
+        waterShaderProp->material = matchedMaterial;
+    }
+
     static_assert(sizeof(RE::NiPointer<RE::NiSourceTexture>) == sizeof(RE::NiSourceTexture*));
     RE::NiPointer<RE::NiSourceTexture>* lentSlots[2]{};
-    if (flowProperty) {
-        auto* water = static_cast<RE::BSWaterShaderMaterial*>(flowProperty->material);
+    if (auto* lender = flowProperty ? flowProperty : textureProperty) {
+        auto* water = static_cast<RE::BSWaterShaderMaterial*>(lender->material);
         RE::NiSourceTexture* first = water->normalTexture1.get();
         if (first) {
             int lent = 0;
@@ -591,6 +601,9 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
             RE::NiSourceTexture* none = nullptr;
             std::memcpy(slot, &none, sizeof(none));
         }
+    }
+    if (textureProperty) {
+        textureProperty->material = storedMaterial;
     }
     if (flowProperty) {
         flowProperty->waterFlags.set(RE::BSWaterShaderProperty::WaterFlag::kEnableFlowmap);
