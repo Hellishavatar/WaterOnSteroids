@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.2
+
+### Added
+
+- Support for Skyrim 1.7.99 and 1.7.104. The plugin's code is unchanged; it now loads on every
+  runtime up to 1.7.104 (it refused 1.7+ before). Its hooks and the water shaders were checked
+  against the 1.7.104 executable: the water shader and render functions are identical to 1.6.1170,
+  Splash Ripples finds its call site, and Clear Underwater's function reads the same data (1.7 added
+  a new check to it). Not yet tested in game on 1.7.
+
 ## 1.0.1
 
 ### Fixed

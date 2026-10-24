@@ -56,8 +56,8 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 {
 	InitializeLog();
-	if (const auto runtime = a_skse->RuntimeVersion(); runtime >= REL::Version(1, 7, 0, 0)) {
-		logger::error("This build supports Skyrim SE and AE up to 1.6.x only; refusing to load in Skyrim {}.", runtime.string("."));
+	if (const auto runtime = a_skse->RuntimeVersion(); runtime > REL::Version(1, 7, 104, 0)) {
+		logger::error("This build supports Skyrim SE and AE up to 1.7.104 only; refusing to load in Skyrim {}.", runtime.string("."));
 		return false;
 	}
 	if (IsCommunityShadersInstalled()) {

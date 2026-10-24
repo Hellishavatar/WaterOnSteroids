@@ -19,9 +19,14 @@ game's own water meshes and compiled shaders, and the in-game menu can turn it a
 
 ## Requirements
 
-- Skyrim SE 1.5.97 or AE 1.6.x (tested on 1.6.1170). Skyrim VR and 1.7+ are not supported yet.
-- [SKSE64](https://skse.silverlock.org/)
+- Skyrim SE 1.5.x, AE 1.6.x, or AE 1.7.99 / 1.7.104 (tested in game on 1.6.1170). Skyrim VR and
+  versions after 1.7.104 are not supported yet.
+- [SKSE64](https://skse.silverlock.org/) (2.3.1 or later for 1.7.104)
 - [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444)
+
+Every engine function the plugin hooks or relies on was checked against the game's code on 1.5.97,
+1.6.318, 1.6.1170 and 1.7.104, and its size against the Address Library of every other 1.5, 1.6 and
+1.7 version.
 
 Not compatible with Community Shaders: the plugin does not load when it is installed.
 
