@@ -30,6 +30,10 @@ Every engine function the plugin hooks or relies on was checked against the game
 
 Not compatible with Community Shaders: the plugin does not load when it is installed.
 
+ENB: compatible. ENB's own `DisableDistantReflection` setting (`[WATER]` in `enbseries.ini`) also
+removes the fade into a flat sky reflection, so with it on, Realistic Distant Water makes no visible
+difference.
+
 ## Building
 
 Windows, Visual Studio 2022 (C++ and CMake components), Git and vcpkg.
