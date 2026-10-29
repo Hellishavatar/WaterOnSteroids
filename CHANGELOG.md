@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.0
+
+### Added
+
+- Solid Distant Water (BETA, `bSolidDistantWater`, on by default): distant water is drawn solid and
+  reflective, without depth fades and with a tenth of the fog distance, so the coarse distant
+  terrain under it no longer makes it read deeper and darker than nearby water at the edge of the
+  loaded cells. Nearby water blends smoothly to the same look as the camera rises from 512 to 2048
+  units above it, and is unchanged closer to the surface. Needs Full Shader for Distant Water.
+
 ## 1.2.1
 
 ### Changed

@@ -810,6 +810,7 @@ namespace Menu
 		bool splashRipples = true;
 		bool realisticDistantWater = true;
 		bool removeSunGlints = true;
+		bool solidDistantWater = true;
 	};
 	static SavedEngineFeatures s_savedEngineFeatures{};
 
@@ -853,6 +854,7 @@ namespace Menu
 		settings.splashRipples = true;
 		settings.realisticDistantWater = true;
 		settings.removeSunGlints = true;
+		settings.solidDistantWater = true;
 		settings.fixDepthProperties = true;
 		settings.waterTransparency = 10.0f;
 		settings.depthReflections = 1.0f;
@@ -1347,6 +1349,19 @@ namespace Menu
 							"");
 				}
 
+				if (featureTable) ImGui::TableNextColumn();
+				ImGui::BeginDisabled(!settings.fullShaderDistantWater);
+				ImGui::Checkbox("Solid Distant Water (BETA)", &settings.solidDistantWater);
+				ImGui::EndDisabled();
+				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+					ImGui::SetTooltip(
+						"Distant water is drawn solid and reflective, without depth fades,\n"
+						"so the coarse distant terrain under it can't show through.\n"
+						"Nearby water blends smoothly to the same look as you rise\n"
+						"high above it (about 7 m to 29 m up).\n"
+						"Needs Full Shader for Distant Water.");
+				}
+
 				if (featureTable) {
 					ImGui::EndTable();
 				}
@@ -1354,14 +1369,16 @@ namespace Menu
 				if (headerClicked) {
 					if (settings.clearUnderwater || settings.fullShaderDistantWater ||
 						settings.disableRiverFlow || settings.splashRipples ||
-						settings.realisticDistantWater || settings.removeSunGlints) {
+						settings.realisticDistantWater || settings.removeSunGlints ||
+						settings.solidDistantWater) {
 						s_savedEngineFeatures = {
 							settings.clearUnderwater,
 							settings.fullShaderDistantWater,
 							settings.disableRiverFlow,
 							settings.splashRipples,
 							settings.realisticDistantWater,
-							settings.removeSunGlints
+							settings.removeSunGlints,
+							settings.solidDistantWater
 						};
 					}
 					settings.clearUnderwater = false;
@@ -1370,6 +1387,7 @@ namespace Menu
 					settings.splashRipples = false;
 					settings.realisticDistantWater = false;
 					settings.removeSunGlints = false;
+					settings.solidDistantWater = false;
 					s_engineFeaturesCollapsed = true;
 					fullPatchChanged = true;
 				}
@@ -1380,6 +1398,7 @@ namespace Menu
 				settings.splashRipples = s_savedEngineFeatures.splashRipples;
 				settings.realisticDistantWater = s_savedEngineFeatures.realisticDistantWater;
 				settings.removeSunGlints = s_savedEngineFeatures.removeSunGlints;
+				settings.solidDistantWater = s_savedEngineFeatures.solidDistantWater;
 				s_engineFeaturesCollapsed = false;
 				fullPatchChanged = true;
 			}
