@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(WaterOnSteroids VERSION 1.1.0 LANGUAGES CXX)
+project(WaterOnSteroids VERSION 1.2.0 LANGUAGES CXX)
 
 set(PLUGIN_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
 if(PLUGIN_VERSION_PATCH STREQUAL "")
@@ -164,6 +164,8 @@ set_source_files_properties(${IMGUI_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS 
 set(SOURCES
     "${CMAKE_SOURCE_DIR}/src/CellWaterMap.cpp"
     "${CMAKE_SOURCE_DIR}/src/CellWaterMap.h"
+    "${CMAKE_SOURCE_DIR}/src/LodWaterSplit.cpp"
+    "${CMAKE_SOURCE_DIR}/src/LodWaterSplit.h"
     "${CMAKE_SOURCE_DIR}/src/Plugin.cpp"
     "${CMAKE_SOURCE_DIR}/src/RenderPassFinder.h"
     "${CMAKE_SOURCE_DIR}/src/Settings.h"

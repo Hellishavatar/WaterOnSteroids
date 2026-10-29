@@ -86,8 +86,11 @@ namespace Menu
 			style.PopupRounding = 6.0f;
 			style.GrabRounding = 4.0f;
 			style.ScrollbarRounding = 6.0f;
-			style.WindowBorderSize = 1.0f;
-			style.FrameBorderSize = 1.0f;
+			style.WindowBorderSize = 0.0f;
+			style.ChildBorderSize = 0.0f;
+			style.PopupBorderSize = 0.0f;
+			style.FrameBorderSize = 0.0f;
+			style.TabBorderSize = 0.0f;
 			style.ItemSpacing = ImVec2(8.0f, 4.0f);
 			style.ItemInnerSpacing = ImVec2(6.0f, 4.0f);
 			style.WindowPadding = ImVec2(10.0f, 8.0f);
@@ -99,42 +102,41 @@ namespace Menu
 			float childAlpha = (std::clamp)(winAlpha * 0.70f, 0.15f, 0.90f);
 			float frameAlpha = (std::clamp)(0.35f + winAlpha * 0.50f, 0.45f, 1.0f);
 			float titleAlpha = (std::clamp)(winAlpha + 0.10f, 0.35f, 1.0f);
-			float borderAlpha = (std::clamp)(0.35f + (1.0f - winAlpha) * 0.35f, 0.45f, 0.85f);
 
 			ImVec4* colors = style.Colors;
-			colors[ImGuiCol_Text] = ImVec4(0.92f, 0.94f, 0.96f, 1.00f);
-			colors[ImGuiCol_TextDisabled] = ImVec4(0.55f, 0.60f, 0.65f, 1.00f);
-			colors[ImGuiCol_WindowBg] = ImVec4(0.08f, 0.10f, 0.13f, winAlpha);
-			colors[ImGuiCol_ChildBg] = ImVec4(0.10f, 0.12f, 0.16f, childAlpha);
-			colors[ImGuiCol_PopupBg] = ImVec4(0.10f, 0.12f, 0.16f, (std::max)(0.88f, winAlpha));
-			colors[ImGuiCol_Border] = ImVec4(0.25f, 0.45f, 0.62f, borderAlpha);
+			colors[ImGuiCol_Text] = ImVec4(0.92f, 0.92f, 0.93f, 1.00f);
+			colors[ImGuiCol_TextDisabled] = ImVec4(0.52f, 0.52f, 0.55f, 1.00f);
+			colors[ImGuiCol_WindowBg] = ImVec4(0.07f, 0.07f, 0.08f, winAlpha);
+			colors[ImGuiCol_ChildBg] = ImVec4(0.09f, 0.09f, 0.10f, childAlpha);
+			colors[ImGuiCol_PopupBg] = ImVec4(0.09f, 0.09f, 0.10f, (std::max)(0.88f, winAlpha));
+			colors[ImGuiCol_Border] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
 			colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-			colors[ImGuiCol_FrameBg] = ImVec4(0.13f, 0.17f, 0.22f, frameAlpha);
-			colors[ImGuiCol_FrameBgHovered] = ImVec4(0.18f, 0.25f, 0.33f, (std::min)(1.0f, frameAlpha + 0.20f));
-			colors[ImGuiCol_FrameBgActive] = ImVec4(0.22f, 0.32f, 0.42f, (std::min)(1.0f, frameAlpha + 0.30f));
-			colors[ImGuiCol_TitleBg] = ImVec4(0.10f, 0.14f, 0.18f, titleAlpha);
-			colors[ImGuiCol_TitleBgActive] = ImVec4(0.14f, 0.24f, 0.34f, titleAlpha);
-			colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.08f, 0.10f, 0.13f, winAlpha * 0.75f);
-			colors[ImGuiCol_MenuBarBg] = ImVec4(0.11f, 0.14f, 0.18f, winAlpha);
-			colors[ImGuiCol_ScrollbarBg] = ImVec4(0.08f, 0.10f, 0.13f, winAlpha * 0.60f);
-			colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.22f, 0.32f, 0.42f, 0.80f);
-			colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.28f, 0.42f, 0.56f, 0.90f);
-			colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.35f, 0.52f, 0.70f, 1.00f);
+			colors[ImGuiCol_FrameBg] = ImVec4(0.14f, 0.14f, 0.15f, frameAlpha);
+			colors[ImGuiCol_FrameBgHovered] = ImVec4(0.19f, 0.19f, 0.21f, (std::min)(1.0f, frameAlpha + 0.20f));
+			colors[ImGuiCol_FrameBgActive] = ImVec4(0.24f, 0.24f, 0.26f, (std::min)(1.0f, frameAlpha + 0.30f));
+			colors[ImGuiCol_TitleBg] = ImVec4(0.06f, 0.06f, 0.07f, titleAlpha);
+			colors[ImGuiCol_TitleBgActive] = ImVec4(0.09f, 0.09f, 0.10f, titleAlpha);
+			colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.06f, 0.06f, 0.07f, winAlpha * 0.75f);
+			colors[ImGuiCol_MenuBarBg] = ImVec4(0.09f, 0.09f, 0.10f, winAlpha);
+			colors[ImGuiCol_ScrollbarBg] = ImVec4(0.07f, 0.07f, 0.08f, winAlpha * 0.60f);
+			colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.24f, 0.24f, 0.26f, 0.80f);
+			colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.32f, 0.32f, 0.35f, 0.90f);
+			colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.40f, 0.40f, 0.44f, 1.00f);
 			colors[ImGuiCol_CheckMark] = ImVec4(0.30f, 0.75f, 0.98f, 1.00f);
 			colors[ImGuiCol_SliderGrab] = ImVec4(0.28f, 0.65f, 0.88f, 1.00f);
 			colors[ImGuiCol_SliderGrabActive] = ImVec4(0.38f, 0.78f, 1.00f, 1.00f);
-			colors[ImGuiCol_Button] = ImVec4(0.16f, 0.24f, 0.32f, frameAlpha);
-			colors[ImGuiCol_ButtonHovered] = ImVec4(0.22f, 0.35f, 0.48f, (std::min)(1.0f, frameAlpha + 0.25f));
-			colors[ImGuiCol_ButtonActive] = ImVec4(0.28f, 0.45f, 0.62f, 1.00f);
-			colors[ImGuiCol_Header] = ImVec4(0.16f, 0.26f, 0.36f, 0.80f);
-			colors[ImGuiCol_HeaderHovered] = ImVec4(0.22f, 0.36f, 0.50f, 0.90f);
-			colors[ImGuiCol_HeaderActive] = ImVec4(0.26f, 0.44f, 0.62f, 1.00f);
-			colors[ImGuiCol_Separator] = ImVec4(0.20f, 0.30f, 0.40f, 0.80f);
-			colors[ImGuiCol_SeparatorHovered] = ImVec4(0.28f, 0.45f, 0.62f, 0.90f);
-			colors[ImGuiCol_SeparatorActive] = ImVec4(0.35f, 0.55f, 0.75f, 1.00f);
-			colors[ImGuiCol_ResizeGrip] = ImVec4(0.22f, 0.35f, 0.48f, 0.50f);
-			colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.30f, 0.50f, 0.70f, 0.75f);
-			colors[ImGuiCol_ResizeGripActive] = ImVec4(0.38f, 0.65f, 0.90f, 0.90f);
+			colors[ImGuiCol_Button] = ImVec4(0.16f, 0.16f, 0.18f, frameAlpha);
+			colors[ImGuiCol_ButtonHovered] = ImVec4(0.22f, 0.22f, 0.25f, (std::min)(1.0f, frameAlpha + 0.25f));
+			colors[ImGuiCol_ButtonActive] = ImVec4(0.28f, 0.28f, 0.32f, 1.00f);
+			colors[ImGuiCol_Header] = ImVec4(0.16f, 0.16f, 0.18f, 0.80f);
+			colors[ImGuiCol_HeaderHovered] = ImVec4(0.22f, 0.22f, 0.25f, 0.90f);
+			colors[ImGuiCol_HeaderActive] = ImVec4(0.28f, 0.28f, 0.32f, 1.00f);
+			colors[ImGuiCol_Separator] = ImVec4(0.22f, 0.22f, 0.24f, 0.80f);
+			colors[ImGuiCol_SeparatorHovered] = ImVec4(0.30f, 0.30f, 0.33f, 0.90f);
+			colors[ImGuiCol_SeparatorActive] = ImVec4(0.38f, 0.38f, 0.42f, 1.00f);
+			colors[ImGuiCol_ResizeGrip] = ImVec4(0.24f, 0.24f, 0.26f, 0.50f);
+			colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.32f, 0.32f, 0.35f, 0.75f);
+			colors[ImGuiCol_ResizeGripActive] = ImVec4(0.40f, 0.40f, 0.44f, 0.90f);
 		}
 
 		void OnResize()
@@ -989,20 +991,15 @@ namespace Menu
 		ImVec2 p0 = screenPos;
 		ImVec2 p1 = ImVec2(p0.x + a_size, p0.y + a_size);
 
-		ImU32 bgCol = active ? IM_COL32(20, 90, 150, 255) :
-			hovered ? IM_COL32(30, 65, 100, 240) :
-			IM_COL32(18, 25, 34, 200);
-
-		ImU32 borderCol = active ? IM_COL32(100, 215, 255, 255) :
-			hovered ? IM_COL32(80, 195, 255, 255) :
-			IM_COL32(45, 68, 92, 190);
+		ImU32 bgCol = active ? IM_COL32(62, 62, 70, 255) :
+			hovered ? IM_COL32(46, 46, 52, 240) :
+			IM_COL32(28, 28, 31, 200);
 
 		ImU32 iconCol = active ? IM_COL32(210, 245, 255, 255) :
 			hovered ? IM_COL32(110, 225, 255, 255) :
 			IM_COL32(145, 180, 210, 230);
 
 		drawList->AddRectFilled(p0, p1, bgCol, 4.0f);
-		drawList->AddRect(p0, p1, borderCol, 4.0f, 0, 1.2f);
 
 		ImVec2 center(p0.x + a_size * 0.5f, p0.y + a_size * 0.5f);
 		float r = a_size * 0.28f;
@@ -1139,20 +1136,15 @@ namespace Menu
 		ImVec2 p0 = screenPos;
 		ImVec2 p1 = ImVec2(p0.x + a_size, p0.y + a_size);
 
-		ImU32 bgCol = active ? IM_COL32(20, 90, 150, 255) :
-			hovered ? IM_COL32(30, 65, 100, 240) :
-			IM_COL32(18, 25, 34, 200);
-
-		ImU32 borderCol = active ? IM_COL32(100, 215, 255, 255) :
-			hovered ? IM_COL32(80, 195, 255, 255) :
-			IM_COL32(45, 68, 92, 190);
+		ImU32 bgCol = active ? IM_COL32(62, 62, 70, 255) :
+			hovered ? IM_COL32(46, 46, 52, 240) :
+			IM_COL32(28, 28, 31, 200);
 
 		ImU32 iconCol = active ? IM_COL32(210, 245, 255, 255) :
 			hovered ? IM_COL32(110, 225, 255, 255) :
 			IM_COL32(145, 180, 210, 230);
 
 		drawList->AddRectFilled(p0, p1, bgCol, 4.0f);
-		drawList->AddRect(p0, p1, borderCol, 4.0f, 0, 1.2f);
 
 		float ox = p0.x;
 		float oy = p0.y;

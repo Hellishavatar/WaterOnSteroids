@@ -1,5 +1,6 @@
 #include "WaterShader.h"
 #include "CellWaterMap.h"
+#include "LodWaterSplit.h"
 #include "Settings.h"
 #include "WaterWatch.h"
 
@@ -299,7 +300,15 @@ std::optional<WaterShader::MeshHeights> WaterShader::MeasureMeshHeights(RE::BSGe
     auto* data = runtime.rendererData;
     const auto& world = a_geometry->world;
     const auto& rot = world.rotate.entry;
-    if (!data || !data->rawVertexData || std::abs(rot[2][0]) > 1e-4f || std::abs(rot[2][1]) > 1e-4f) {
+    if (!data || std::abs(rot[2][0]) > 1e-4f || std::abs(rot[2][1]) > 1e-4f) {
+        return std::nullopt;
+    }
+    if (const auto known = LodWaterSplit::KnownLocalHeight(a_geometry, data)) {
+        const float height = world.translate.z + world.scale * rot[2][2] * *known;
+        auto*       shape = a_geometry->AsTriShape();
+        return MeshHeights{ height, height, shape ? shape->GetTrishapeRuntimeData().vertexCount : 0u, false };
+    }
+    if (!data->rawVertexData) {
         return std::nullopt;
     }
 

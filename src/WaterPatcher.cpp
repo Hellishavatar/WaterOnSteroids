@@ -1,4 +1,5 @@
 #include "WaterPatcher.h"
+#include "LodWaterSplit.h"
 #include "RenderPassFinder.h"
 #include "WaterShader.h"
 #include "WaterWatch.h"
@@ -343,6 +344,8 @@ void WaterPatcher::Initialize()
 			logger::error("Realistic Distant Water: failed to hook the per-frame constants or the pass-range draw (another mod may have patched them). Distant water stays vanilla.");
 		}
 	}
+
+	LodWaterSplit::Install();
 
 	RefreshWaterSettings();
 }

@@ -14,7 +14,8 @@ toggled at runtime.
   distant piece uses the material (settings and wave textures) of the nearest loaded water of its own
   water type, and its depth plane is set from its measured surface height. Per-cell water types are
   read from the active plugins once at startup; when a type is not loaded nearby, water at the same
-  height is used instead.
+  height is used instead. Pieces that contain water at several heights are split into one flat piece
+  per height when their terrain block loads.
 - **Realistic Distant Water**: keeps full water shading beyond the engine's distance fade, which
   otherwise blends water into a flat sky reflection past 8192 units.
 - **Disable River Flow**: draws flow-map rivers without their flow map, removing the seam where they
@@ -62,6 +63,8 @@ against the Address Library of every other 1.5, 1.6 and 1.7 version.
   technique upgrade for distant water, flow-map removal, per-draw material overrides, distant-water
   matching and depth plane.
 - `ImageSpaceEffectDepthOfField::UpdateParams`: underwater blur.
+- `BGSTerrainChunk` constructor: splits mixed-height LOD water shapes per height as each terrain block
+  loads.
 - The actor water-entry splash: ripple size.
 - The per-frame shader constants update and the accumulator pass-range draw: distance fade. Both are
   located at runtime from CommonLib-named functions rather than Address Library IDs.

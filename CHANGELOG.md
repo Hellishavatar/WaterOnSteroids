@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.2.0
+
+### Added
+
+- Mixed-height distant water is split per height. Distant (LOD) water pieces that contain water at
+  several heights, such as a lake above the sea or a river stepping down in one LOD block, are split
+  into one flat piece per height when their terrain block loads, using the game's own shape factory.
+  Each piece then gets a depth plane at its own height and its own water type match, so the lower
+  water no longer looks deeper and darker than its neighbours. Mixed pieces occur at LOD levels 8,
+  16 and 32.
+
+### Changed
+
+- The menu uses a neutral dark theme without borders.
+
 ## 1.1.0
 
 ### Changed
