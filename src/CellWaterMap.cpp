@@ -1,4 +1,5 @@
 #include "CellWaterMap.h"
+#include "LodWaterSplit.h"
 
 #include <RE/T/TES.h>
 #include <RE/T/TESDataHandler.h>
@@ -374,6 +375,10 @@ RE::TESWaterForm* CellWaterMap::TypeFor(const RE::BSGeometry* a_geometry, float 
 		return nullptr;
 	}
 
+	if (auto* known = LodWaterSplit::KnownType(a_geometry)) {
+		return known;
+	}
+
 	static thread_local std::unordered_map<const RE::BSGeometry*, CachedType> cache;
 	const auto& bound = a_geometry->worldBound;
 	if (const auto it = cache.find(a_geometry); it != cache.end()) {
@@ -420,4 +425,43 @@ RE::TESWaterForm* CellWaterMap::TypeFor(const RE::BSGeometry* a_geometry, float 
 	}
 	cache[a_geometry] = CachedType{ bound.center, bound.radius, map.get(), best };
 	return best;
+}
+
+std::optional<std::pair<float, RE::TESWaterForm*>> CellWaterMap::DefaultWater()
+{
+	auto* world = LodWorld();
+	if (!world) {
+		return std::nullopt;
+	}
+	const auto map = MapFor(world);
+	if (!map || !map->defaultType) {
+		return std::nullopt;
+	}
+	return std::make_pair(map->defaultHeight, map->defaultType);
+}
+
+std::vector<RE::TESWaterForm*> CellWaterMap::TypesAt(std::int32_t a_minX, std::int32_t a_minY, std::int32_t a_maxX, std::int32_t a_maxY, float a_height)
+{
+	auto* world = LodWorld();
+	if (!world || a_maxX < a_minX || a_maxY < a_minY || a_maxX - a_minX > kMaxSpan || a_maxY - a_minY > kMaxSpan) {
+		return {};
+	}
+	const auto map = MapFor(world);
+	if (!map) {
+		return {};
+	}
+
+	const std::int32_t             width = a_maxX - a_minX + 1;
+	std::vector<RE::TESWaterForm*> types(static_cast<std::size_t>(width) * (a_maxY - a_minY + 1), nullptr);
+	for (std::int32_t y = a_minY; y <= a_maxY; ++y) {
+		for (std::int32_t x = a_minX; x <= a_maxX; ++x) {
+			const auto it = map->cells.find(Key(x, y));
+			const Cell cell = it != map->cells.end() ? it->second : Cell{};
+			const float height = std::isnan(cell.height) ? map->defaultHeight : cell.height;
+			if (cell.water && std::abs(height - a_height) <= kHeightTolerance) {
+				types[static_cast<std::size_t>(y - a_minY) * width + (x - a_minX)] = cell.type ? cell.type : map->defaultType;
+			}
+		}
+	}
+	return types;
 }

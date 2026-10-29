@@ -2,6 +2,7 @@
 #include "CellWaterMap.h"
 #include "LodWaterSplit.h"
 #include "Settings.h"
+#include "TypeMaterial.h"
 #include "WaterWatch.h"
 
 #include <RE/B/BSRenderPass.h>
@@ -298,6 +299,17 @@ namespace
         return t * t * (3.0f - 2.0f * t);
     }
 
+    constexpr float kSeaLevelTolerance = 2.0f;
+
+    RE::TESWaterForm* SeaWaterAt(const RE::TESWaterForm* a_type, float a_height)
+    {
+        const auto sea = CellWaterMap::DefaultWater();
+        if (!sea || sea->second == a_type || std::abs(a_height - sea->first) > kSeaLevelTolerance) {
+            return nullptr;
+        }
+        return sea->second;
+    }
+
     RE::BSWaterShaderMaterial* BuildSolidMaterial(
         const RE::BSWaterShaderMaterial* a_source,
         const SettingsSnapshot& a_settings,
@@ -582,6 +594,7 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
     RE::NiPointer<RE::BSTriShape>     matchedShape;
     RE::BSShaderMaterial*             matchedMaterial = nullptr;
     RE::BSWaterShaderProperty*        waterShaderProp = nullptr;
+    bool                              riverAtSeaLevel = false;
 
     if (a_pass && a_pass->shaderProperty && a_pass->shaderProperty->material &&
         a_pass->shaderProperty->material->GetType() == RE::BSShaderMaterial::Type::kWater) {
@@ -600,12 +613,32 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
                 solid = distant ? (distantWaterUpgraded ? 1.0f : 0.0f) : NearbySolidAmount(waterShaderProp);
             }
             if (distant) {
-                matchedWater = FindMatchingCloseWater(a_pass->geometry);
-                matchedShape = matchedWater ? matchedWater->shape : nullptr;
-                auto* property = matchedShape ? matchedShape->GetGeometryRuntimeData().shaderProperty.get() : nullptr;
-                if (property && property->material && property->material->GetType() == RE::BSShaderMaterial::Type::kWater) {
-                    source = property->material;
-                    matchedMaterial = property->material;
+                const auto heights = MeasureMeshHeights(a_pass->geometry);
+                auto*      type = heights ? CellWaterMap::TypeFor(a_pass->geometry, heights->minZ, heights->maxZ) : nullptr;
+                if (type && settings.IsRiverFlowDisabled() && type->flags.any(RE::TESWaterForm::Flag::kEnableFlowmap)) {
+                    if (auto* sea = SeaWaterAt(type, heights->maxZ)) {
+                        type = sea;
+                    }
+                }
+                if (auto* own = type ? TypeMaterial::For(type) : nullptr) {
+                    source = own;
+                    matchedMaterial = own;
+                } else {
+                    matchedWater = FindMatchingCloseWater(a_pass->geometry);
+                    matchedShape = matchedWater ? matchedWater->shape : nullptr;
+                    auto* property = matchedShape ? matchedShape->GetGeometryRuntimeData().shaderProperty.get() : nullptr;
+                    if (property && property->material && property->material->GetType() == RE::BSShaderMaterial::Type::kWater) {
+                        source = property->material;
+                        matchedMaterial = property->material;
+                    }
+                }
+            } else if (matching && riverFlowStripped && std::abs(waterShaderProp->plane.normal.z - 1.0f) < 1e-3f) {
+                if (auto* sea = SeaWaterAt(nullptr, waterShaderProp->plane.constant)) {
+                    if (auto* own = TypeMaterial::For(sea)) {
+                        source = own;
+                        matchedMaterial = own;
+                        riverAtSeaLevel = true;
+                    }
                 }
             }
 
@@ -646,7 +679,7 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
 
     RE::BSWaterShaderProperty* textureProperty = nullptr;
     RE::BSShaderMaterial*      storedMaterial = nullptr;
-    if (distantWaterUpgraded && waterShaderProp && matchedMaterial && waterShaderProp->material != matchedMaterial) {
+    if ((distantWaterUpgraded || riverAtSeaLevel) && waterShaderProp && matchedMaterial && waterShaderProp->material != matchedMaterial) {
         textureProperty = waterShaderProp;
         storedMaterial = waterShaderProp->material;
         waterShaderProp->material = matchedMaterial;

@@ -1331,6 +1331,7 @@ namespace Menu
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip(
 						"Bigger ripples when actors jump or fall into water.\n"
+						"Your ripples stretch along the way you were moving.\n"
 						"Arrows, spells and items keep the vanilla ripple.");
 				}
 

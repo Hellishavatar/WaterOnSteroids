@@ -173,6 +173,8 @@ set(SOURCES
     "${CMAKE_SOURCE_DIR}/src/WaterPatcher.h"
     "${CMAKE_SOURCE_DIR}/src/Menu.cpp"
     "${CMAKE_SOURCE_DIR}/src/Menu.h"
+    "${CMAKE_SOURCE_DIR}/src/TypeMaterial.cpp"
+    "${CMAKE_SOURCE_DIR}/src/TypeMaterial.h"
     "${CMAKE_SOURCE_DIR}/src/WaterShader.cpp"
     "${CMAKE_SOURCE_DIR}/src/WaterShader.h"
     "${CMAKE_SOURCE_DIR}/src/WaterWatch.cpp"

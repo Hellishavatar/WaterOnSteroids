@@ -1,5 +1,33 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Distant water is split at water type borders. When a terrain block loads, distant water is also
+  split by the water type of each cell, cut exactly at the cell edges, and each part copies nearby
+  water of its own type. Before, a whole distant block took the type of most of its cells, so where
+  two water types meet, such as the river mouth below Solitude, the waves changed speed along a
+  straight block edge instead of where the cells change. Only active with Full Shader for Distant
+  Water on.
+- Distant water now takes its look from its own water type. Each distant piece uses a material built
+  from its water type's record, with that type's wave textures and wind, the way the game builds it
+  for nearby water, whether or not water of that type is loaded nearby. Before, distant water
+  copied loaded nearby water, so a type that wasn't loaded copied whichever water was nearest at the
+  same height, and neighbouring pieces could get different water (at the river mouth below
+  Solitude, one copied the river and the next the sea). Copying nearby water remains the fallback
+  for pieces whose water type isn't known.
+- With Disable River Flow on, river water at sea level now moves like the sea. River water types
+  have much faster wind than the sea (3 to 5 times at the Solitude harbour, which Update.esm gives
+  a river type), made for their flow maps; without the flow map that wind showed as fast waves
+  ending at the sea. River water at the worldspace's sea level, nearby and distant, now uses the
+  sea's water type. Rivers at other heights are unchanged.
+- Splash Ripples follow your movement: when you jump or fall into water while moving, including
+  sideways, your splash ripples stretch along the direction you were moving, up to 1.8 times as
+  long at running speed. Dropping straight down keeps them round. The direction comes from your
+  position over the last quarter second, since the game reports almost no speed at the moment you
+  enter the water. NPC splashes and the ripple timing are unchanged.
+
 ## 1.3.0
 
 ### Added
