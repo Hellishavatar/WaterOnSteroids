@@ -69,31 +69,17 @@ namespace
 	constexpr float kSplashSizeHeavy = 50.0f;
 	constexpr auto  kRippleStep = std::chrono::milliseconds(50);
 	constexpr std::size_t kMaxPendingSplashes = 32;
-	constexpr float kSplashPlayerReach = 256.0f;
-	constexpr float kSplashRunSpeedFull = 500.0f;
-	constexpr float kSplashTeleportDistance = 512.0f;
-	constexpr auto  kSplashMotionWindow = std::chrono::milliseconds(250);
 
 	struct PendingSplash
 	{
 		RE::NiPoint3                          pos;
 		float                                 radius{ 0.0f };
-		float                                 stretch{ 1.0f };
-		float                                 dirX{ 1.0f };
-		float                                 dirY{ 0.0f };
 		std::chrono::steady_clock::time_point discTime{};
 		bool                                  discDone{ false };
 	};
 
-	struct MotionSample
-	{
-		std::chrono::steady_clock::time_point time;
-		RE::NiPoint3                          pos;
-	};
-
 	std::mutex                 splashLock;
 	std::vector<PendingSplash> pendingSplashes;
-	std::vector<MotionSample>  playerMotion;
 	std::atomic<bool>          hasPendingSplashes{ false };
 	std::uintptr_t             actorSplashReturn{ 0 };
 
@@ -127,70 +113,6 @@ namespace
 		return found;
 	}
 
-	void SamplePlayerMotion()
-	{
-		auto* player = RE::PlayerCharacter::GetSingleton();
-		if (!player) {
-			return;
-		}
-		const auto now = std::chrono::steady_clock::now();
-		const auto pos = player->GetPosition();
-		std::scoped_lock lock(splashLock);
-		if (!playerMotion.empty()) {
-			const auto& last = playerMotion.back().pos;
-			if (std::hypot(pos.x - last.x, pos.y - last.y, pos.z - last.z) > kSplashTeleportDistance) {
-				playerMotion.clear();
-			}
-		}
-		std::erase_if(playerMotion, [&](const MotionSample& a_sample) { return now - a_sample.time > kSplashMotionWindow; });
-		playerMotion.push_back({ now, pos });
-	}
-
-	void ShapeAlongPlayerMotion(PendingSplash& a_splash)
-	{
-		auto* player = RE::PlayerCharacter::GetSingleton();
-		if (!player) {
-			return;
-		}
-		const auto  position = player->GetPosition();
-		const float dx = position.x - a_splash.pos.x;
-		const float dy = position.y - a_splash.pos.y;
-		if (dx * dx + dy * dy > kSplashPlayerReach * kSplashPlayerReach) {
-			return;
-		}
-
-		RE::NiPoint3 velocity;
-		player->GetLinearVelocity(velocity);
-		float bestX = velocity.x;
-		float bestY = velocity.y;
-		{
-			const auto       now = std::chrono::steady_clock::now();
-			std::scoped_lock lock(splashLock);
-			for (std::size_t i = 1; i < playerMotion.size(); ++i) {
-				if (now - playerMotion[i - 1].time > kSplashMotionWindow) {
-					continue;
-				}
-				const float seconds = std::chrono::duration<float>(playerMotion[i].time - playerMotion[i - 1].time).count();
-				if (seconds <= 0.0f) {
-					continue;
-				}
-				const float x = (playerMotion[i].pos.x - playerMotion[i - 1].pos.x) / seconds;
-				const float y = (playerMotion[i].pos.y - playerMotion[i - 1].pos.y) / seconds;
-				if (std::hypot(x, y) > std::hypot(bestX, bestY)) {
-					bestX = x;
-					bestY = y;
-				}
-			}
-		}
-
-		const float run = std::hypot(bestX, bestY);
-		if (run > 1.0f) {
-			a_splash.stretch = 1.0f + 0.8f * (std::min)(run / kSplashRunSpeedFull, 1.0f);
-			a_splash.dirX = bestX / run;
-			a_splash.dirY = bestY / run;
-		}
-	}
-
 	struct Hook_WaterSplash
 	{
 		static void thunk(float a_size, RE::NiPoint3* a_pos)
@@ -203,12 +125,11 @@ namespace
 				return;
 			}
 			const float weight = std::clamp(a_size / kSplashSizeHeavy, 0.1f, 1.5f);
-			PendingSplash splash{ *a_pos, 8.0f + 28.0f * weight };
-			ShapeAlongPlayerMotion(splash);
+			const float radius = 8.0f + 28.0f * weight;
 
 			std::scoped_lock lock(splashLock);
 			if (pendingSplashes.size() < kMaxPendingSplashes) {
-				pendingSplashes.push_back(splash);
+				pendingSplashes.push_back({ *a_pos, radius });
 				hasPendingSplashes.store(true, std::memory_order_release);
 			}
 		}
@@ -216,42 +137,31 @@ namespace
 		static inline REL::Relocation<decltype(thunk)> func;
 	};
 
-	void AddSplashDab(RE::TESWaterSystem* a_system, const PendingSplash& a_splash, float a_along, float a_across)
+	void AddSplashDab(RE::TESWaterSystem* a_system, const RE::NiPoint3& a_center, float a_x, float a_y)
 	{
-		const RE::NiPoint3 point{
-			a_splash.pos.x + a_along * a_splash.dirX - a_across * a_splash.dirY,
-			a_splash.pos.y + a_along * a_splash.dirY + a_across * a_splash.dirX,
-			a_splash.pos.z
-		};
-		a_system->AddRipple(point, kSplashRippleScale);
+		a_system->AddRipple(RE::NiPoint3{ a_center.x + a_x, a_center.y + a_y, a_center.z }, kSplashRippleScale);
 	}
 
-	void AddSplashDisc(RE::TESWaterSystem* a_system, const PendingSplash& a_splash, float a_radius)
+	void AddSplashDisc(RE::TESWaterSystem* a_system, const RE::NiPoint3& a_center, float a_radius)
 	{
-		const float front = a_radius * a_splash.stretch;
-		const int   ahead = static_cast<int>(front / kSplashDabSpacing);
-		const int   behind = static_cast<int>(a_radius / kSplashDabSpacing);
-		for (int iy = -behind; iy <= behind; ++iy) {
-			for (int ix = -behind; ix <= ahead; ++ix) {
-				const float u = static_cast<float>(ix) * kSplashDabSpacing;
-				const float v = static_cast<float>(iy) * kSplashDabSpacing;
-				const float reach = u > 0.0f ? front : a_radius;
-				if ((u * u) / (reach * reach) + (v * v) / (a_radius * a_radius) <= 1.0f) {
-					AddSplashDab(a_system, a_splash, u, v);
+		const int steps = static_cast<int>(a_radius / kSplashDabSpacing);
+		for (int iy = -steps; iy <= steps; ++iy) {
+			for (int ix = -steps; ix <= steps; ++ix) {
+				const float x = static_cast<float>(ix) * kSplashDabSpacing;
+				const float y = static_cast<float>(iy) * kSplashDabSpacing;
+				if (x * x + y * y <= a_radius * a_radius) {
+					AddSplashDab(a_system, a_center, x, y);
 				}
 			}
 		}
 	}
 
-	void AddSplashRing(RE::TESWaterSystem* a_system, const PendingSplash& a_splash, float a_radius)
+	void AddSplashRing(RE::TESWaterSystem* a_system, const RE::NiPoint3& a_center, float a_radius)
 	{
-		const float front = a_radius * a_splash.stretch;
-		const float perimeter = std::numbers::pi_v<float> * (0.5f * (front + a_radius) + a_radius);
-		const int   count = std::clamp(static_cast<int>(std::ceil(perimeter / kSplashDabSpacing)), 8, 96);
+		const int count = std::clamp(static_cast<int>(std::ceil(2.0f * std::numbers::pi_v<float> * a_radius / kSplashDabSpacing)), 8, 96);
 		for (int i = 0; i < count; ++i) {
 			const float angle = 2.0f * std::numbers::pi_v<float> * static_cast<float>(i) / static_cast<float>(count);
-			const float c = std::cos(angle);
-			AddSplashDab(a_system, a_splash, (c > 0.0f ? front : a_radius) * c, a_radius * std::sin(angle));
+			AddSplashDab(a_system, a_center, a_radius * std::cos(angle), a_radius * std::sin(angle));
 		}
 	}
 
@@ -355,11 +265,6 @@ namespace
 
 void WaterPatcher::OnFrame()
 {
-	const auto& settings = Settings::GetFastSnapshot();
-	if (settings.enabled && settings.splashRipples) {
-		SamplePlayerMotion();
-	}
-
 	if (!hasPendingSplashes.load(std::memory_order_acquire)) {
 		return;
 	}
@@ -384,12 +289,12 @@ void WaterPatcher::OnFrame()
 	std::vector<PendingSplash> later;
 	for (auto& splash : due) {
 		if (!splash.discDone) {
-			AddSplashDisc(system, splash, splash.radius * 0.5f);
+			AddSplashDisc(system, splash.pos, splash.radius * 0.5f);
 			splash.discDone = true;
 			splash.discTime = now;
 			later.push_back(splash);
 		} else if (now - splash.discTime >= kRippleStep) {
-			AddSplashRing(system, splash, splash.radius);
+			AddSplashRing(system, splash.pos, splash.radius);
 		} else {
 			later.push_back(splash);
 		}

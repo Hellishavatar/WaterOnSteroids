@@ -22,11 +22,6 @@
   a river type), made for their flow maps; without the flow map that wind showed as fast waves
   ending at the sea. River water at the worldspace's sea level, nearby and distant, now uses the
   sea's water type. Rivers at other heights are unchanged.
-- Splash Ripples follow your movement: when you jump or fall into water while moving, including
-  sideways, your splash ripples stretch along the direction you were moving, up to 1.8 times as
-  long at running speed. Dropping straight down keeps them round. The direction comes from your
-  position over the last quarter second, since the game reports almost no speed at the moment you
-  enter the water. NPC splashes and the ripple timing are unchanged.
 
 ## 1.3.0
 
