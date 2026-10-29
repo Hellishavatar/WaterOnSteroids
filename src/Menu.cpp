@@ -104,39 +104,39 @@ namespace Menu
 			float titleAlpha = (std::clamp)(winAlpha + 0.10f, 0.35f, 1.0f);
 
 			ImVec4* colors = style.Colors;
-			colors[ImGuiCol_Text] = ImVec4(0.92f, 0.92f, 0.93f, 1.00f);
-			colors[ImGuiCol_TextDisabled] = ImVec4(0.52f, 0.52f, 0.55f, 1.00f);
-			colors[ImGuiCol_WindowBg] = ImVec4(0.07f, 0.07f, 0.08f, winAlpha);
-			colors[ImGuiCol_ChildBg] = ImVec4(0.09f, 0.09f, 0.10f, childAlpha);
-			colors[ImGuiCol_PopupBg] = ImVec4(0.09f, 0.09f, 0.10f, (std::max)(0.88f, winAlpha));
+			colors[ImGuiCol_Text] = ImVec4(0.80f, 0.80f, 0.78f, 1.00f);
+			colors[ImGuiCol_TextDisabled] = ImVec4(0.46f, 0.46f, 0.45f, 1.00f);
+			colors[ImGuiCol_WindowBg] = ImVec4(0.02f, 0.02f, 0.02f, winAlpha);
+			colors[ImGuiCol_ChildBg] = ImVec4(0.04f, 0.04f, 0.04f, childAlpha);
+			colors[ImGuiCol_PopupBg] = ImVec4(0.04f, 0.04f, 0.04f, (std::max)(0.88f, winAlpha));
 			colors[ImGuiCol_Border] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
 			colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-			colors[ImGuiCol_FrameBg] = ImVec4(0.14f, 0.14f, 0.15f, frameAlpha);
-			colors[ImGuiCol_FrameBgHovered] = ImVec4(0.19f, 0.19f, 0.21f, (std::min)(1.0f, frameAlpha + 0.20f));
-			colors[ImGuiCol_FrameBgActive] = ImVec4(0.24f, 0.24f, 0.26f, (std::min)(1.0f, frameAlpha + 0.30f));
-			colors[ImGuiCol_TitleBg] = ImVec4(0.06f, 0.06f, 0.07f, titleAlpha);
-			colors[ImGuiCol_TitleBgActive] = ImVec4(0.09f, 0.09f, 0.10f, titleAlpha);
-			colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.06f, 0.06f, 0.07f, winAlpha * 0.75f);
-			colors[ImGuiCol_MenuBarBg] = ImVec4(0.09f, 0.09f, 0.10f, winAlpha);
-			colors[ImGuiCol_ScrollbarBg] = ImVec4(0.07f, 0.07f, 0.08f, winAlpha * 0.60f);
-			colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.24f, 0.24f, 0.26f, 0.80f);
-			colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.32f, 0.32f, 0.35f, 0.90f);
-			colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.40f, 0.40f, 0.44f, 1.00f);
-			colors[ImGuiCol_CheckMark] = ImVec4(0.30f, 0.75f, 0.98f, 1.00f);
-			colors[ImGuiCol_SliderGrab] = ImVec4(0.28f, 0.65f, 0.88f, 1.00f);
-			colors[ImGuiCol_SliderGrabActive] = ImVec4(0.38f, 0.78f, 1.00f, 1.00f);
-			colors[ImGuiCol_Button] = ImVec4(0.16f, 0.16f, 0.18f, frameAlpha);
-			colors[ImGuiCol_ButtonHovered] = ImVec4(0.22f, 0.22f, 0.25f, (std::min)(1.0f, frameAlpha + 0.25f));
-			colors[ImGuiCol_ButtonActive] = ImVec4(0.28f, 0.28f, 0.32f, 1.00f);
-			colors[ImGuiCol_Header] = ImVec4(0.16f, 0.16f, 0.18f, 0.80f);
-			colors[ImGuiCol_HeaderHovered] = ImVec4(0.22f, 0.22f, 0.25f, 0.90f);
-			colors[ImGuiCol_HeaderActive] = ImVec4(0.28f, 0.28f, 0.32f, 1.00f);
-			colors[ImGuiCol_Separator] = ImVec4(0.22f, 0.22f, 0.24f, 0.80f);
-			colors[ImGuiCol_SeparatorHovered] = ImVec4(0.30f, 0.30f, 0.33f, 0.90f);
-			colors[ImGuiCol_SeparatorActive] = ImVec4(0.38f, 0.38f, 0.42f, 1.00f);
-			colors[ImGuiCol_ResizeGrip] = ImVec4(0.24f, 0.24f, 0.26f, 0.50f);
-			colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.32f, 0.32f, 0.35f, 0.75f);
-			colors[ImGuiCol_ResizeGripActive] = ImVec4(0.40f, 0.40f, 0.44f, 0.90f);
+			colors[ImGuiCol_FrameBg] = ImVec4(0.08f, 0.08f, 0.08f, frameAlpha);
+			colors[ImGuiCol_FrameBgHovered] = ImVec4(0.12f, 0.12f, 0.12f, (std::min)(1.0f, frameAlpha + 0.20f));
+			colors[ImGuiCol_FrameBgActive] = ImVec4(0.16f, 0.16f, 0.16f, (std::min)(1.0f, frameAlpha + 0.30f));
+			colors[ImGuiCol_TitleBg] = ImVec4(0.00f, 0.00f, 0.00f, titleAlpha);
+			colors[ImGuiCol_TitleBgActive] = ImVec4(0.02f, 0.02f, 0.02f, titleAlpha);
+			colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, winAlpha * 0.75f);
+			colors[ImGuiCol_MenuBarBg] = ImVec4(0.03f, 0.03f, 0.03f, winAlpha);
+			colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, winAlpha * 0.60f);
+			colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.18f, 0.18f, 0.18f, 0.80f);
+			colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.25f, 0.25f, 0.25f, 0.90f);
+			colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.78f, 0.65f, 0.36f, 1.00f);
+			colors[ImGuiCol_CheckMark] = ImVec4(0.78f, 0.65f, 0.36f, 1.00f);
+			colors[ImGuiCol_SliderGrab] = ImVec4(0.76f, 0.63f, 0.34f, 1.00f);
+			colors[ImGuiCol_SliderGrabActive] = ImVec4(0.86f, 0.75f, 0.50f, 1.00f);
+			colors[ImGuiCol_Button] = ImVec4(0.09f, 0.09f, 0.09f, frameAlpha);
+			colors[ImGuiCol_ButtonHovered] = ImVec4(0.14f, 0.14f, 0.14f, (std::min)(1.0f, frameAlpha + 0.25f));
+			colors[ImGuiCol_ButtonActive] = ImVec4(0.19f, 0.19f, 0.19f, 1.00f);
+			colors[ImGuiCol_Header] = ImVec4(0.09f, 0.09f, 0.09f, 0.80f);
+			colors[ImGuiCol_HeaderHovered] = ImVec4(0.14f, 0.14f, 0.14f, 0.90f);
+			colors[ImGuiCol_HeaderActive] = ImVec4(0.19f, 0.19f, 0.19f, 1.00f);
+			colors[ImGuiCol_Separator] = ImVec4(0.15f, 0.15f, 0.15f, 0.80f);
+			colors[ImGuiCol_SeparatorHovered] = ImVec4(0.22f, 0.22f, 0.22f, 0.90f);
+			colors[ImGuiCol_SeparatorActive] = ImVec4(0.78f, 0.65f, 0.36f, 1.00f);
+			colors[ImGuiCol_ResizeGrip] = ImVec4(0.18f, 0.18f, 0.18f, 0.50f);
+			colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.25f, 0.25f, 0.25f, 0.75f);
+			colors[ImGuiCol_ResizeGripActive] = ImVec4(0.78f, 0.65f, 0.36f, 0.90f);
 		}
 
 		void OnResize()
@@ -316,7 +316,7 @@ namespace Menu
 				ImGuiWindow* win = ImGui::GetCurrentWindow();
 				ImRect titleBarRect = win->TitleBarRect();
 				const ImGuiStyle& style = ImGui::GetStyle();
-				const ImU32 titleBlue = ImGui::GetColorU32(ImVec4{ 0.35f, 0.85f, 1.0f, 1.0f });
+				const ImU32 titleAccent = ImGui::GetColorU32(ImVec4{ 0.78f, 0.65f, 0.36f, 1.0f });
 
 				ImVec2 titleSize = ImGui::CalcTextSize(winTitle.c_str());
 				ImVec2 titlePos(
@@ -324,7 +324,7 @@ namespace Menu
 					titleBarRect.Min.y + (titleBarRect.GetHeight() - titleSize.y) * 0.5f);
 
 				win->DrawList->PushClipRect(titleBarRect.Min, titleBarRect.Max, false);
-				win->DrawList->AddText(titlePos, titleBlue, winTitle.c_str());
+				win->DrawList->AddText(titlePos, titleAccent, winTitle.c_str());
 				win->DrawList->PopClipRect();
 
 				Render();
@@ -819,7 +819,7 @@ namespace Menu
 		const char* labelEnd = ImGui::FindRenderedTextEnd(a_label);
 		ImGui::PushStyleColor(
 			ImGuiCol_Text,
-			a_active ? ImVec4{ 0.35f, 0.85f, 1.0f, 1.0f } : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+			a_active ? ImVec4{ 0.78f, 0.65f, 0.36f, 1.0f } : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
 		ImGui::SeparatorTextEx(window->GetID(a_label), a_label, labelEnd, 0.0f);
 		ImGui::PopStyleColor();
 
@@ -834,7 +834,7 @@ namespace Menu
 			const float labelX = bb.Min.x + style.SeparatorTextPadding.x + ImMax(0.0f, (labelAvailW - labelSize.x) * style.SeparatorTextAlign.x);
 			const float sep1X2 = labelX - style.ItemSpacing.x;
 			if (sep1X2 > sep1X1 && style.SeparatorTextBorderSize > 0.0f) {
-				window->DrawList->AddLineH(sep1X1, sep1X2, sepsY, IM_COL32(105, 225, 255, 255), style.SeparatorTextBorderSize);
+				window->DrawList->AddLineH(sep1X1, sep1X2, sepsY, IM_COL32(199, 166, 92, 255), style.SeparatorTextBorderSize);
 			}
 		}
 
@@ -891,15 +891,15 @@ namespace Menu
 		return pressed;
 	}
 
-	static ImU32 GetTitleBarIconBlue(bool a_hovered, bool a_held)
+	static ImU32 GetTitleBarIconAccent(bool a_hovered, bool a_held)
 	{
 		if (a_held) {
-			return IM_COL32(215, 248, 255, 255);
+			return IM_COL32(228, 210, 160, 255);
 		}
 		if (a_hovered) {
-			return IM_COL32(150, 235, 255, 255);
+			return IM_COL32(214, 186, 120, 255);
 		}
-		return IM_COL32(89, 217, 255, 255);
+		return IM_COL32(199, 166, 92, 255);
 	}
 
 	static bool RenderBypassIconButton(const char* a_id, const ImVec2& a_pos, float a_size, bool a_enabled)
@@ -911,7 +911,7 @@ namespace Menu
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
 		const ImVec2 p0 = a_pos;
 		const ImVec2 p1(p0.x + a_size, p0.y + a_size);
-		const ImU32 iconCol = a_enabled ? GetTitleBarIconBlue(hovered, held) : IM_COL32(235, 85, 85, 255);
+		const ImU32 iconCol = a_enabled ? GetTitleBarIconAccent(hovered, held) : IM_COL32(235, 85, 85, 255);
 
 		const ImVec2 center(p0.x + a_size * 0.5f, p0.y + a_size * 0.53f);
 		const float r = a_size * 0.38f;
@@ -947,7 +947,7 @@ namespace Menu
 
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
 		const ImVec2 p0 = a_pos;
-		const ImU32 iconCol = GetTitleBarIconBlue(hovered, held);
+		const ImU32 iconCol = GetTitleBarIconAccent(hovered, held);
 
 		const ImVec2 center(p0.x + a_size * 0.5f, p0.y + a_size * 0.5f);
 		const float r = a_size * 0.36f;
@@ -991,13 +991,13 @@ namespace Menu
 		ImVec2 p0 = screenPos;
 		ImVec2 p1 = ImVec2(p0.x + a_size, p0.y + a_size);
 
-		ImU32 bgCol = active ? IM_COL32(62, 62, 70, 255) :
-			hovered ? IM_COL32(46, 46, 52, 240) :
-			IM_COL32(28, 28, 31, 200);
+		ImU32 bgCol = active ? IM_COL32(48, 48, 48, 255) :
+			hovered ? IM_COL32(32, 32, 32, 240) :
+			IM_COL32(14, 14, 14, 220);
 
-		ImU32 iconCol = active ? IM_COL32(210, 245, 255, 255) :
-			hovered ? IM_COL32(110, 225, 255, 255) :
-			IM_COL32(145, 180, 210, 230);
+		ImU32 iconCol = active ? IM_COL32(228, 210, 160, 255) :
+			hovered ? IM_COL32(210, 178, 105, 255) :
+			IM_COL32(170, 170, 170, 220);
 
 		drawList->AddRectFilled(p0, p1, bgCol, 4.0f);
 
@@ -1035,7 +1035,7 @@ namespace Menu
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
 		const ImVec2 p0 = a_pos;
 		const ImVec2 p1(p0.x + a_size, p0.y + a_size);
-		const ImU32 iconCol = GetTitleBarIconBlue(hovered, held);
+		const ImU32 iconCol = GetTitleBarIconAccent(hovered, held);
 
 		const float pad = a_size * 0.11f;
 		const ImVec2 d0(p0.x + pad, p0.y + pad);
@@ -1077,7 +1077,7 @@ namespace Menu
 		const ImVec2 p0 = a_pos;
 		const ImVec2 p1(p0.x + a_size, p0.y + a_size);
 
-		ImU32 iconCol = GetTitleBarIconBlue(hovered, held);
+		ImU32 iconCol = GetTitleBarIconAccent(hovered, held);
 		if (a_step == 1) {
 			iconCol = IM_COL32(255, 95, 95, 255);
 		} else if (a_step == 2) {
@@ -1136,13 +1136,13 @@ namespace Menu
 		ImVec2 p0 = screenPos;
 		ImVec2 p1 = ImVec2(p0.x + a_size, p0.y + a_size);
 
-		ImU32 bgCol = active ? IM_COL32(62, 62, 70, 255) :
-			hovered ? IM_COL32(46, 46, 52, 240) :
-			IM_COL32(28, 28, 31, 200);
+		ImU32 bgCol = active ? IM_COL32(48, 48, 48, 255) :
+			hovered ? IM_COL32(32, 32, 32, 240) :
+			IM_COL32(14, 14, 14, 220);
 
-		ImU32 iconCol = active ? IM_COL32(210, 245, 255, 255) :
-			hovered ? IM_COL32(110, 225, 255, 255) :
-			IM_COL32(145, 180, 210, 230);
+		ImU32 iconCol = active ? IM_COL32(228, 210, 160, 255) :
+			hovered ? IM_COL32(210, 178, 105, 255) :
+			IM_COL32(170, 170, 170, 220);
 
 		drawList->AddRectFilled(p0, p1, bgCol, 4.0f);
 
@@ -1182,7 +1182,7 @@ namespace Menu
 		const bool clicked = TitleBarButton(a_id, a_pos, a_size, hovered, held);
 
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
-		const ImU32 iconCol = GetTitleBarIconBlue(hovered, held);
+		const ImU32 iconCol = GetTitleBarIconAccent(hovered, held);
 
 		const ImVec2 center(a_pos.x + a_size * 0.5f, a_pos.y + a_size * 0.5f);
 		const float r = a_size * 0.30f;

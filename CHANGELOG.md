@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.1
+
+### Changed
+
+- The menu uses a true dark theme with a muted gold accent instead of cyan, and softer text colors
+  for lower contrast.
+
 ## 1.2.0
 
 ### Added
