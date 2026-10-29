@@ -1,4 +1,5 @@
 #include "WaterWatch.h"
+#include "CellWaterMap.h"
 #include "Settings.h"
 #include "Version.h"
 #include "WaterShader.h"
@@ -234,6 +235,7 @@ namespace
 		bool          matchChecked{ false };
 		const void*   matchedShape{ nullptr };
 		RE::FormID    matchedForm{ 0 };
+		RE::FormID    cellType{ 0 };
 		std::uint64_t shaderFlags{ 0 };
 		float         alpha{ 0.0f };
 		std::uint64_t unkB0{ 0 };
@@ -594,6 +596,11 @@ namespace
 			}
 			if (!g.matchChecked) {
 				g.matchChecked = true;
+				if (const auto heights = WaterShader::MeasureMeshHeights(a_geom)) {
+					if (auto* type = CellWaterMap::TypeFor(a_geom, heights->minZ, heights->maxZ)) {
+						g.cellType = type->GetFormID();
+					}
+				}
 				if (const auto match = WaterShader::FindMatchingCloseWater(a_geom)) {
 					g.matchedShape = match->shape.get();
 					g.matchedForm = match->waterType ? match->waterType->GetFormID() : 0;
@@ -820,9 +827,11 @@ namespace
 			verdict += std::format("{}Full Shader depth plane z {:.1f}", verdict.empty() ? "" : "; ", *a_g.fullShaderPlaneZ);
 		}
 		if (a_g.matchChecked) {
+			verdict += a_g.cellType ? std::format("; cell water type {}", FormName(a_g.cellType)) : std::string("; cell water type unknown");
 			verdict += a_g.matchedShape ?
-			               std::format("; matches close water {} (form {})", Ptr(a_g.matchedShape), FormName(a_g.matchedForm)) :
-			               std::string("; no close water at its height (keeps DefaultWater)");
+			               std::format("; matches close water {} (form {}, {})", Ptr(a_g.matchedShape), FormName(a_g.matchedForm),
+			                   a_g.cellType && a_g.cellType == a_g.matchedForm ? "same water type" : "same height") :
+			               std::string("; no close water of its type or height (keeps DefaultWater)");
 		}
 		return std::format("surface: {} | {}{}{}", planeText, meshText, verdict.empty() ? "" : " => ", verdict);
 	}

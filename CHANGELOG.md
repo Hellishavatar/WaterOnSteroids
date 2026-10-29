@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.1.0
+
+### Changed
+
+- Distant water matching is now based on water type instead of height. At startup the plugin reads
+  the water height, water type and water flag of every exterior cell from the active plugins, in
+  load order (about 0.3 s for the base game with all DLC and Creation Club content). Each distant
+  piece then uses the material of the nearest loaded water of its own type, at any height; water at
+  the same height is used only when that type is not loaded nearby.
+- Distant pieces that span several water heights can now be matched by type. Their depth plane is
+  unchanged.
+- The live water log reports each distant piece's water type and whether it matched by type or by
+  height.
+
+### Fixed
+
+- Distant water lost its matched material when no nearby water had exactly the same height, and
+  fell back to the LOD water material. For example, the river below Riverwood showed the LOD water
+  look (bright blue with Water for ENB) once its nearest cell unloaded.
+- Distant water could take the material of a different water body at the same height, such as a
+  lake one unit above sea level.
+
+### Dependencies
+
+- zlib 1.3.1 (compiled in, for compressed plugin records). Its notice is in THIRD_PARTY_NOTICES.txt.
+
 ## 1.0.2
 
 ### Added

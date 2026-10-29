@@ -4,6 +4,7 @@
 #include "WaterPatcher.h"
 #include "Menu.h"
 #include "WaterWatch.h"
+#include "CellWaterMap.h"
 
 #include <spdlog/sinks/basic_file_sink.h>
 
@@ -42,6 +43,7 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 	case SKSE::MessagingInterface::kDataLoaded:
 		WaterPatcher::GetSingleton().Initialize();
 		Menu::InstallHooks();
+		CellWaterMap::Scan();
 		break;
 	case SKSE::MessagingInterface::kPostLoadGame:
 	case SKSE::MessagingInterface::kNewGame:

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(WaterOnSteroids VERSION 1.0.2 LANGUAGES CXX)
+project(WaterOnSteroids VERSION 1.1.0 LANGUAGES CXX)
 
 set(PLUGIN_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
 if(PLUGIN_VERSION_PATCH STREQUAL "")
@@ -112,6 +112,7 @@ declare_dependency(
 declare_dependency(CommonLibSSE CommonLibSSE-NG https://github.com/alandtse/CommonLibSSE-NG.git v13.1.0)
 
 find_package(fmt CONFIG REQUIRED)
+find_package(ZLIB REQUIRED)
 find_path(DETOURS_INCLUDE_DIRS "detours/detours.h" REQUIRED)
 find_library(DETOURS_LIBRARY NAMES detours REQUIRED)
 FetchContent_MakeAvailable(spdlog)
@@ -161,6 +162,8 @@ set(IMGUI_SOURCES
 set_source_files_properties(${IMGUI_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
 set(SOURCES
+    "${CMAKE_SOURCE_DIR}/src/CellWaterMap.cpp"
+    "${CMAKE_SOURCE_DIR}/src/CellWaterMap.h"
     "${CMAKE_SOURCE_DIR}/src/Plugin.cpp"
     "${CMAKE_SOURCE_DIR}/src/RenderPassFinder.h"
     "${CMAKE_SOURCE_DIR}/src/Settings.h"
@@ -205,6 +208,7 @@ target_precompile_headers(${PROJECT_NAME} PRIVATE include/PCH.h)
 target_link_libraries(${PROJECT_NAME} PRIVATE
     spdlog::spdlog
     fmt::fmt
+    ZLIB::ZLIB
     ${DETOURS_LIBRARY}
     d3d11
     dxgi)

@@ -1,4 +1,5 @@
 #include "WaterShader.h"
+#include "CellWaterMap.h"
 #include "Settings.h"
 #include "WaterWatch.h"
 
@@ -401,14 +402,18 @@ RE::NiPointer<RE::TESWaterObject> WaterShader::FindMatchingCloseWater(RE::BSGeom
     };
 
     const auto heights = MeasureMeshHeights(a_distant);
-    if (!heights || heights->maxZ - heights->minZ > 2.0f) {
+    if (!heights) {
         store(nullptr, false);
         return nullptr;
     }
 
+    const bool  flat = heights->maxZ - heights->minZ <= 2.0f;
     const float height = heights->maxZ;
+    auto*       type = CellWaterMap::TypeFor(a_distant, heights->minZ, heights->maxZ);
     float       bestDistanceSq = (std::numeric_limits<float>::max)();
+    float       bestTypeDistanceSq = (std::numeric_limits<float>::max)();
     RE::NiPointer<RE::TESWaterObject> best;
+    RE::NiPointer<RE::TESWaterObject> bestType;
 
     {
         RE::BSSpinLockGuard guard(waterSystem->lock);
@@ -418,8 +423,12 @@ RE::NiPointer<RE::TESWaterObject> WaterShader::FindMatchingCloseWater(RE::BSGeom
             }
             auto* shape = water->shape.get();
             const auto& plane = water->plane;
-            if (shape == a_distant || IsLodWaterGeometry(shape) || std::abs(plane.normal.z - 1.0f) > 1e-3f ||
-                std::abs(plane.constant - height) > 2.0f) {
+            if (shape == a_distant || IsLodWaterGeometry(shape) || std::abs(plane.normal.z - 1.0f) > 1e-3f) {
+                continue;
+            }
+            const bool sameType = type && water->waterType == type;
+            const bool sameHeight = flat && std::abs(plane.constant - height) <= 2.0f;
+            if (!sameType && !sameHeight) {
                 continue;
             }
             auto* property = shape->GetGeometryRuntimeData().shaderProperty.get();
@@ -429,13 +438,20 @@ RE::NiPointer<RE::TESWaterObject> WaterShader::FindMatchingCloseWater(RE::BSGeom
             const float dx = shape->worldBound.center.x - centre.x;
             const float dy = shape->worldBound.center.y - centre.y;
             const float distanceSq = dx * dx + dy * dy;
-            if (distanceSq < bestDistanceSq) {
+            if (sameType && distanceSq < bestTypeDistanceSq) {
+                bestTypeDistanceSq = distanceSq;
+                bestType = water;
+            }
+            if (sameHeight && distanceSq < bestDistanceSq) {
                 bestDistanceSq = distanceSq;
                 best = water;
             }
         }
     }
 
+    if (bestType) {
+        best = bestType;
+    }
     store(best, true);
     return best;
 }
