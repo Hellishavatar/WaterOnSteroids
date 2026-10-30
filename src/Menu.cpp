@@ -44,7 +44,6 @@ namespace Menu
 		ID3D11RenderTargetView* s_mainRenderTargetView{ nullptr };
 
 		std::atomic<bool> s_toggleKeyPressed{ false };
-		bool s_sampledInitialWater{ false };
 
 		constexpr std::array s_menuLockedControls{
 			RE::ControlMap::UEFlag::kLooking,
@@ -840,6 +839,13 @@ namespace Menu
 		return ImGui::IsItemClicked(ImGuiMouseButton_Right) || (!a_active && ImGui::IsItemClicked(ImGuiMouseButton_Left));
 	}
 
+	static void ResetDirectColors(Settings& a_settings)
+	{
+		a_settings.shallowColor = { 0.0f, 0.0f, 0.0f };
+		a_settings.deepColor = { 0.0f, 0.118812f, 0.101167f };
+		a_settings.reflectionColor = { 0.0151946f, 0.0990099f, 0.0716247f };
+	}
+
 	static void ResetSettingsToDefaults()
 	{
 		auto& settings = Settings::GetSingleton();
@@ -858,14 +864,11 @@ namespace Menu
 		settings.depthSpecularLighting = 1.00f;
 
 		settings.colorMode = 0;
-		settings.shallowColor = { 0.0f, 0.0f, 0.0f };
-		settings.deepColor = { 0.0f, 0.118812f, 0.101167f };
-		settings.reflectionColor = { 0.0151946f, 0.0990099f, 0.0716247f };
+		ResetDirectColors(settings);
 		settings.shallowColorScale = { 1.0f, 1.0f, 1.0f };
 		settings.deepColorScale = { 1.0f, 1.0f, 1.0f };
 		settings.reflectionColorScale = { 1.0f, 1.0f, 1.0f };
 
-		s_sampledInitialWater = false;
 		s_engineFeaturesCollapsed = false;
 		s_savedEngineFeatures = {};
 
@@ -1115,60 +1118,6 @@ namespace Menu
 			ImGui::SetTooltip("%s", kTooltips[std::clamp(a_step, 0, 3)]);
 		}
 
-		return clicked;
-	}
-
-	static bool RenderSampleColorIconButton(const char* a_id, float a_size)
-	{
-		ImGui::PushID(a_id);
-
-		ImVec2 btnSize(a_size, a_size);
-		ImVec2 screenPos = ImGui::GetCursorScreenPos();
-		bool clicked = ImGui::InvisibleButton("##btn", btnSize);
-		bool hovered = ImGui::IsItemHovered();
-		bool active = ImGui::IsItemActive();
-
-		ImDrawList* drawList = ImGui::GetWindowDrawList();
-
-		ImVec2 p0 = screenPos;
-		ImVec2 p1 = ImVec2(p0.x + a_size, p0.y + a_size);
-
-		ImU32 bgCol = active ? IM_COL32(48, 48, 48, 255) :
-			hovered ? IM_COL32(32, 32, 32, 240) :
-			IM_COL32(14, 14, 14, 220);
-
-		ImU32 iconCol = active ? IM_COL32(228, 210, 160, 255) :
-			hovered ? IM_COL32(210, 178, 105, 255) :
-			IM_COL32(170, 170, 170, 220);
-
-		drawList->AddRectFilled(p0, p1, bgCol, 4.0f);
-
-		float ox = p0.x;
-		float oy = p0.y;
-
-		ImVec2 pts[] = {
-			ImVec2(ox + a_size * 0.36f, oy + a_size * 0.20f),
-			ImVec2(ox + a_size * 0.57f, oy + a_size * 0.18f),
-			ImVec2(ox + a_size * 0.75f, oy + a_size * 0.25f),
-			ImVec2(ox + a_size * 0.84f, oy + a_size * 0.43f),
-			ImVec2(ox + a_size * 0.80f, oy + a_size * 0.64f),
-			ImVec2(ox + a_size * 0.64f, oy + a_size * 0.80f),
-			ImVec2(ox + a_size * 0.43f, oy + a_size * 0.80f),
-			ImVec2(ox + a_size * 0.38f, oy + a_size * 0.66f),
-			ImVec2(ox + a_size * 0.27f, oy + a_size * 0.59f),
-			ImVec2(ox + a_size * 0.18f, oy + a_size * 0.45f),
-			ImVec2(ox + a_size * 0.20f, oy + a_size * 0.30f)
-		};
-		drawList->AddPolyline(pts, IM_ARRAYSIZE(pts), iconCol, ImDrawFlags_Closed, 1.4f);
-
-		drawList->AddCircle(ImVec2(ox + a_size * 0.34f, oy + a_size * 0.66f), a_size * 0.07f, iconCol, 12, 1.2f);
-
-		drawList->AddCircleFilled(ImVec2(ox + a_size * 0.35f, oy + a_size * 0.36f), a_size * 0.065f, iconCol);
-		drawList->AddCircleFilled(ImVec2(ox + a_size * 0.52f, oy + a_size * 0.31f), a_size * 0.065f, iconCol);
-		drawList->AddCircleFilled(ImVec2(ox + a_size * 0.69f, oy + a_size * 0.36f), a_size * 0.065f, iconCol);
-		drawList->AddCircleFilled(ImVec2(ox + a_size * 0.72f, oy + a_size * 0.54f), a_size * 0.060f, iconCol);
-
-		ImGui::PopID();
 		return clicked;
 	}
 
@@ -1423,12 +1372,6 @@ namespace Menu
 
 		RenderSectionSeparator("Water Colors", true, nullptr);
 
-		if (!settings.hasCustomColors && !s_sampledInitialWater) {
-			if (WaterPatcher::GetSingleton().CaptureActiveWaterColors()) {
-				s_sampledInitialWater = true;
-			}
-		}
-
 		if (BeginSettingsTable("##waterColors")) {
 			const auto& style = ImGui::GetStyle();
 			const float frameH = ImGui::GetFrameHeight();
@@ -1451,14 +1394,11 @@ namespace Menu
 
 			ImGui::SameLine(0, style.ItemInnerSpacing.x);
 			if (settings.colorMode == 0) {
-				if (RenderSampleColorIconButton("##directOverrideSampleColor", frameH)) {
-					if (WaterPatcher::GetSingleton().CaptureActiveWaterColors()) {
-						settings.hasCustomColors = true;
-					}
+				if (RenderResetDefaultsIconButton("##resetDirectColors", frameH,
+						"Reset colors to the game's own water colors")) {
+					ResetDirectColors(settings);
+					settings.hasCustomColors = false;
 				}
-				ItemTooltip(
-					"Sample Water Colors\n"
-					"Copies the colors of the water you are in or closest to.");
 
 				constexpr const char* kDeepTip =
 					"Water color away from the shore.\n"

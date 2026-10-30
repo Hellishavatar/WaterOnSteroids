@@ -16,8 +16,6 @@ public:
 	void Initialize();
 	void RefreshWaterSettings(bool a_silent = false);
 
-	bool CaptureActiveWaterColors();
-
 private:
 	WaterPatcher() = default;
 	WaterPatcher(const WaterPatcher&) = delete;

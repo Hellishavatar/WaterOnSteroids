@@ -21,6 +21,8 @@
   sea's water type. Rivers at other heights are unchanged.
 - Removed Splash Ripples and its `bSplashRipples` setting. Splashes are vanilla again; the separate
   plugin Dynamic Splashes covers them.
+- Removed the Sample Water Colors button. Direct Override now has a reset button, like Tint /
+  Multiplier, that returns to the game's own water colors.
 - Removed Solid Distant Water and its `bSolidDistantWater` setting. Distant water now always keeps
   its depth fades, and nearby water no longer changes as the camera rises.
 - Removed the load checks: the plugin no longer refuses to load when Community Shaders is installed,
