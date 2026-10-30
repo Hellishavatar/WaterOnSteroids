@@ -357,7 +357,6 @@ namespace Menu
 			static HRESULT WINAPI thunk(IDXGISwapChain* a_swapChain, UINT a_syncInterval, UINT a_flags)
 			{
 				WaterWatch::OnFrame();
-				WaterPatcher::OnFrame();
 				RenderFrame(a_swapChain);
 				return func(a_swapChain, a_syncInterval, a_flags);
 			}
@@ -807,7 +806,6 @@ namespace Menu
 		bool clearUnderwater = true;
 		bool fullShaderDistantWater = true;
 		bool disableRiverFlow = true;
-		bool splashRipples = true;
 		bool realisticDistantWater = true;
 		bool removeSunGlints = true;
 		bool solidDistantWater = true;
@@ -851,7 +849,6 @@ namespace Menu
 		settings.clearUnderwater = true;
 		settings.fullShaderDistantWater = true;
 		settings.disableRiverFlow = true;
-		settings.splashRipples = true;
 		settings.realisticDistantWater = true;
 		settings.removeSunGlints = true;
 		settings.solidDistantWater = true;
@@ -1327,14 +1324,6 @@ namespace Menu
 				}
 
 				if (featureTable) ImGui::TableNextColumn();
-				ImGui::Checkbox("Splash Ripples", &settings.splashRipples);
-				if (ImGui::IsItemHovered()) {
-					ImGui::SetTooltip(
-						"Bigger ripples when actors jump or fall into water.\n"
-						"Arrows, spells and items keep the vanilla ripple.");
-				}
-
-				if (featureTable) ImGui::TableNextColumn();
 				const bool riverFlowForced = settings.realisticDistantWater;
 				bool       riverFlowShown = riverFlowForced || settings.disableRiverFlow;
 				ImGui::BeginDisabled(riverFlowForced);
@@ -1368,14 +1357,13 @@ namespace Menu
 
 				if (headerClicked) {
 					if (settings.clearUnderwater || settings.fullShaderDistantWater ||
-						settings.disableRiverFlow || settings.splashRipples ||
+						settings.disableRiverFlow ||
 						settings.realisticDistantWater || settings.removeSunGlints ||
 						settings.solidDistantWater) {
 						s_savedEngineFeatures = {
 							settings.clearUnderwater,
 							settings.fullShaderDistantWater,
 							settings.disableRiverFlow,
-							settings.splashRipples,
 							settings.realisticDistantWater,
 							settings.removeSunGlints,
 							settings.solidDistantWater
@@ -1384,7 +1372,6 @@ namespace Menu
 					settings.clearUnderwater = false;
 					settings.fullShaderDistantWater = false;
 					settings.disableRiverFlow = false;
-					settings.splashRipples = false;
 					settings.realisticDistantWater = false;
 					settings.removeSunGlints = false;
 					settings.solidDistantWater = false;
@@ -1395,7 +1382,6 @@ namespace Menu
 				settings.clearUnderwater = s_savedEngineFeatures.clearUnderwater;
 				settings.fullShaderDistantWater = s_savedEngineFeatures.fullShaderDistantWater;
 				settings.disableRiverFlow = s_savedEngineFeatures.disableRiverFlow;
-				settings.splashRipples = s_savedEngineFeatures.splashRipples;
 				settings.realisticDistantWater = s_savedEngineFeatures.realisticDistantWater;
 				settings.removeSunGlints = s_savedEngineFeatures.removeSunGlints;
 				settings.solidDistantWater = s_savedEngineFeatures.solidDistantWater;

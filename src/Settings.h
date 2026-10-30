@@ -12,7 +12,6 @@ struct SettingsSnapshot
 	bool clearUnderwater{ true };
 	bool fullShaderDistantWater{ true };
 	bool disableRiverFlow{ true };
-	bool splashRipples{ true };
 	bool realisticDistantWater{ true };
 	bool removeSunGlints{ true };
 	bool solidDistantWater{ true };
@@ -62,7 +61,6 @@ public:
 		m_snapshot.clearUnderwater = clearUnderwater;
 		m_snapshot.fullShaderDistantWater = fullShaderDistantWater;
 		m_snapshot.disableRiverFlow = disableRiverFlow;
-		m_snapshot.splashRipples = splashRipples;
 		m_snapshot.realisticDistantWater = realisticDistantWater;
 		m_snapshot.removeSunGlints = removeSunGlints;
 		m_snapshot.solidDistantWater = solidDistantWater;
@@ -241,8 +239,6 @@ public:
 				fullShaderDistantWater = (val == "true" || val == "1");
 			} else if (key == "bDisableRiverFlow") {
 				disableRiverFlow = (val == "true" || val == "1");
-			} else if (key == "bSplashRipples") {
-				splashRipples = (val == "true" || val == "1");
 			} else if (key == "bRealisticDistantWater") {
 				realisticDistantWater = (val == "true" || val == "1");
 			} else if (key == "bRemoveSunGlints") {
@@ -334,8 +330,6 @@ public:
 		line("# Disable River Flow: removes river flow to hide the seam with distant water.");
 		line("# Always on while bRealisticDistantWater is true.");
 		flag("bDisableRiverFlow", disableRiverFlow);
-		line("# Splash Ripples: bigger ripples when actors jump or fall into water.");
-		flag("bSplashRipples", splashRipples);
 		line("# Realistic Distant Water: keeps water color and depth at any distance. Also turns on bDisableRiverFlow.");
 		flag("bRealisticDistantWater", realisticDistantWater);
 		line("# Remove Sun Glints: removes the flashing sun specks on calm water.");
@@ -397,7 +391,6 @@ public:
 	bool clearUnderwater{ true };
 	bool fullShaderDistantWater{ true };
 	bool disableRiverFlow{ true };
-	bool splashRipples{ true };
 	bool realisticDistantWater{ true };
 	bool removeSunGlints{ true };
 	bool solidDistantWater{ true };

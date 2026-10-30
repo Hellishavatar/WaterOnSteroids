@@ -1088,9 +1088,9 @@ namespace
 	void LogPluginState(std::string_view a_prefix)
 	{
 		const auto s = Settings::GetSingleton().GetSnapshot();
-		Line("{}plugin state: enabled={} fixDepthProperties={} transparency={:.0f}% refl={:.2f} refr={:.2f} normals={:.2f} spec={:.2f} customColors={} clearUnderwater={} fullShaderDistantWater={} disableRiverFlow={} splashRipples={} realisticDistantWater={} removeSunGlints={} drawOverrideActive={}",
+		Line("{}plugin state: enabled={} fixDepthProperties={} transparency={:.0f}% refl={:.2f} refr={:.2f} normals={:.2f} spec={:.2f} customColors={} clearUnderwater={} fullShaderDistantWater={} disableRiverFlow={} realisticDistantWater={} removeSunGlints={} drawOverrideActive={}",
 			a_prefix, s.enabled, s.fixDepthProperties, s.waterTransparency, s.depthReflections, s.depthRefraction, s.depthNormals,
-			s.depthSpecularLighting, s.hasCustomColors, s.clearUnderwater, s.fullShaderDistantWater, s.disableRiverFlow, s.splashRipples, s.realisticDistantWater, s.removeSunGlints, WaterShader::IsMaterialOverrideActive(s));
+			s.depthSpecularLighting, s.hasCustomColors, s.clearUnderwater, s.fullShaderDistantWater, s.disableRiverFlow, s.realisticDistantWater, s.removeSunGlints, WaterShader::IsMaterialOverrideActive(s));
 	}
 
 	void Poll(std::string_view a_ctx, Mode a_mode)

@@ -16,8 +16,6 @@ public:
 	void Initialize();
 	void RefreshWaterSettings(bool a_silent = false);
 
-	static void OnFrame();
-
 	bool CaptureActiveWaterColors();
 
 private:
