@@ -5,6 +5,7 @@
 #include "Menu.h"
 #include "WaterWatch.h"
 #include "CellWaterMap.h"
+#include "ShaderPatch.h"
 
 #include <spdlog/sinks/basic_file_sink.h>
 
@@ -35,6 +36,7 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 		WaterPatcher::GetSingleton().Initialize();
 		Menu::InstallHooks();
 		CellWaterMap::Scan();
+		ShaderPatch::ReportStatus();
 		break;
 	case SKSE::MessagingInterface::kPostLoadGame:
 	case SKSE::MessagingInterface::kNewGame:
@@ -50,6 +52,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 {
 	InitializeLog();
 	SKSE::Init(a_skse);
+	ShaderPatch::Install();
 	logger::info("Loaded v{}.{}.{} | {} {}",
 		Plugin::VERSION.major(),
 		Plugin::VERSION.minor(),

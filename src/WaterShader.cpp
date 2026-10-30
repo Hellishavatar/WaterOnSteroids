@@ -15,9 +15,6 @@
 #include <RE/N/NiSkinPartition.h>
 #include <RE/P/PlayerCamera.h>
 #include <RE/P/PlayerCharacter.h>
-#include <RE/I/INIPrefSettingCollection.h>
-#include <RE/I/INISettingCollection.h>
-#include <RE/S/Setting.h>
 #include <RE/T/TES.h>
 #include <RE/T/TESObjectCELL.h>
 #include <RE/T/TESWaterSystem.h>
@@ -40,53 +37,9 @@ namespace
 
     thread_local const RE::BSShaderMaterial* currentSource = nullptr;
     thread_local float currentSolid = 0.0f;
-    thread_local float currentReflections = 1.0f;
     thread_local std::uint32_t loadedTechnique = 0;
     thread_local bool distantWaterUpgraded = false;
     thread_local bool riverFlowStripped = false;
-
-    RE::Setting* ScreenSpaceReflections()
-    {
-        static RE::Setting* const setting = [] {
-            RE::Setting* found = nullptr;
-            if (auto* prefs = RE::INIPrefSettingCollection::GetSingleton()) {
-                found = prefs->GetSetting("fWaterSSRIntensity:Display");
-            }
-            if (auto* ini = RE::INISettingCollection::GetSingleton(); !found && ini) {
-                found = ini->GetSetting("fWaterSSRIntensity:Display");
-            }
-            if (!found) {
-                logger::warn("Realistic Distant Water: fWaterSSRIntensity:Display not found; distant water keeps screen-space reflections.");
-            }
-            return found;
-        }();
-        return setting;
-    }
-
-    struct ReflectionScale
-    {
-        explicit ReflectionScale(float a_scale) :
-            setting(a_scale < 1.0f - 1e-3f ? ScreenSpaceReflections() : nullptr)
-        {
-            if (setting) {
-                stored = setting->data.f;
-                setting->data.f = stored * a_scale;
-            }
-        }
-
-        ~ReflectionScale()
-        {
-            if (setting) {
-                setting->data.f = stored;
-            }
-        }
-
-        ReflectionScale(const ReflectionScale&) = delete;
-        ReflectionScale& operator=(const ReflectionScale&) = delete;
-
-        RE::Setting* setting;
-        float        stored{ 0.0f };
-    };
 
     float HalfToFloat(std::uint16_t a_half)
     {
@@ -343,23 +296,15 @@ namespace
     constexpr float kSolidNearHeight = 512.0f;
     constexpr float kSolidFullHeight = 2048.0f;
 
-    float CameraRise(float a_surface)
-    {
-        auto* camera = RE::PlayerCamera::GetSingleton();
-        if (!camera || !camera->cameraRoot) {
-            return 0.0f;
-        }
-        const float above = camera->cameraRoot->world.translate.z - a_surface;
-        const float t = std::clamp((above - kSolidNearHeight) / (kSolidFullHeight - kSolidNearHeight), 0.0f, 1.0f);
-        return t * t * (3.0f - 2.0f * t);
-    }
-
     float NearbySolidAmount(const RE::BSWaterShaderProperty* a_property)
     {
-        if (!a_property || std::abs(a_property->plane.normal.z - 1.0f) > 1e-3f) {
+        auto* camera = RE::PlayerCamera::GetSingleton();
+        if (!camera || !camera->cameraRoot || !a_property || std::abs(a_property->plane.normal.z - 1.0f) > 1e-3f) {
             return 0.0f;
         }
-        return CameraRise(a_property->plane.constant);
+        const float above = camera->cameraRoot->world.translate.z - a_property->plane.constant;
+        const float t = std::clamp((above - kSolidNearHeight) / (kSolidFullHeight - kSolidNearHeight), 0.0f, 1.0f);
+        return t * t * (3.0f - 2.0f * t);
     }
 
     constexpr float kSeaLevelTolerance = 2.0f;
@@ -530,7 +475,6 @@ void WaterShader::Hooked_SetupMaterial(RE::BSShader* a_shader, const RE::BSShade
 
     currentSource = nullptr;
     currentSolid = 0.0f;
-    currentReflections = 1.0f;
 
     const auto& settings = Settings::GetFastSnapshot();
     if (a_material && a_material->GetType() == RE::BSShaderMaterial::Type::kWater) {
@@ -596,21 +540,9 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
                 }
             }
 
-            float reflections = 1.0f;
-            if (settings.enabled && settings.realisticDistantWater) {
-                if (distant) {
-                    const auto piece = LodWaterSplit::PieceFor(a_pass->geometry);
-                    reflections = 1.0f - CameraRise(piece ? PieceHeight(a_pass->geometry, *piece) : a_pass->geometry->worldBound.center.z);
-                } else {
-                    reflections = 1.0f - NearbySolidAmount(waterShaderProp);
-                }
-            }
-            if (((overrideActive || matching) || reflections < 1.0f || currentReflections < 1.0f) &&
-                (source != currentSource || std::abs(solid - currentSolid) > 1e-3f || std::abs(reflections - currentReflections) > 1e-3f)) {
+            if ((overrideActive || matching) && (source != currentSource || std::abs(solid - currentSolid) > 1e-3f)) {
                 currentSource = source;
                 currentSolid = solid;
-                currentReflections = reflections;
-                const ReflectionScale scale(reflections);
                 const auto* water = static_cast<const RE::BSWaterShaderMaterial*>(source);
                 if (solid > 0.0f) {
                     originalSetupMaterial(a_shader, BuildSolidMaterial(water, settings, overrideActive, solid));

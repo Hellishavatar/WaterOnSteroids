@@ -26,11 +26,13 @@
 
 ### Fixed
 
-- Realistic Distant Water no longer shows flickering dark patches on water seen from high above. It
-  kept the game's screen-space reflections at full strength at any distance, where they can only
-  reflect what is on screen. Screen-space reflections now fade out on all water, nearby and
-  distant alike, as the camera rises from 512 to 2048 units above it, so there is no edge between
-  the two; near the surface they are unchanged. Water keeps its color, depth and refraction.
+- Realistic Distant Water no longer shows flickering dark patches on distant water. It used to set
+  a frame-wide shader flag that kept water's full shading at any distance, but that flag also kept
+  the game's screen-space reflections at full strength far away, where they can only reflect what
+  is on screen. It now uses a patched copy of each vanilla water pixel shader, made when the game
+  creates the shader and used only while the feature is on: water keeps its color, depth and
+  refraction at any distance, and screen-space reflections keep the game's own smooth distance
+  fade. With ENB, whose own water shader handles this, water shaders are left alone.
 - Distant water pieces no longer stay behind when their terrain block unloads. The game removes only
   the first water shape of an unloading terrain block, so blocks whose distant water is in several
   pieces left the others in the water system, which grew with every block loaded (over 40,000
