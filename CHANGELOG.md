@@ -21,6 +21,8 @@
   sea's water type. Rivers at other heights are unchanged.
 - Removed Splash Ripples and its `bSplashRipples` setting. Splashes are vanilla again; the separate
   plugin Dynamic Splashes covers them.
+- Removed Solid Distant Water and its `bSolidDistantWater` setting. Distant water now always keeps
+  its depth fades, and nearby water no longer changes as the camera rises.
 - Removed the load checks: the plugin no longer refuses to load when Community Shaders is installed,
   on runtimes newer than 1.7.104, or in Skyrim VR. Only SE 1.5.97 and AE up to 1.7.104 are
   supported, and Community Shaders is not supported; with it installed, its own water features may

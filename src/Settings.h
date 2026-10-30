@@ -14,7 +14,6 @@ struct SettingsSnapshot
 	bool disableRiverFlow{ true };
 	bool realisticDistantWater{ true };
 	bool removeSunGlints{ true };
-	bool solidDistantWater{ true };
 
 	bool fixDepthProperties{ true };
 	float waterTransparency{ 10.0f };
@@ -63,7 +62,6 @@ public:
 		m_snapshot.disableRiverFlow = disableRiverFlow;
 		m_snapshot.realisticDistantWater = realisticDistantWater;
 		m_snapshot.removeSunGlints = removeSunGlints;
-		m_snapshot.solidDistantWater = solidDistantWater;
 		m_snapshot.fixDepthProperties = fixDepthProperties;
 		m_snapshot.waterTransparency = waterTransparency;
 		m_snapshot.depthReflections = depthReflections;
@@ -243,8 +241,6 @@ public:
 				realisticDistantWater = (val == "true" || val == "1");
 			} else if (key == "bRemoveSunGlints") {
 				removeSunGlints = (val == "true" || val == "1");
-			} else if (key == "bSolidDistantWater") {
-				solidDistantWater = (val == "true" || val == "1");
 			}
 			else if (key == "bLiveWaterLog") {
 				liveWaterLog = (val == "true" || val == "1");
@@ -334,11 +330,6 @@ public:
 		flag("bRealisticDistantWater", realisticDistantWater);
 		line("# Remove Sun Glints: removes the flashing sun specks on calm water.");
 		flag("bRemoveSunGlints", removeSunGlints);
-		line("# Solid Distant Water (BETA): distant water is drawn solid and reflective, without depth fades and");
-		line("# with a tenth of the fog distance, so the coarse distant terrain under it can't show through.");
-		line("# Nearby water blends to the same look as the camera rises from 512 to 2048 units above it.");
-		line("# Needs bFullShaderDistantWater.");
-		flag("bSolidDistantWater", solidDistantWater);
 		line("");
 
 		line("[WaterDepth]");
@@ -393,7 +384,6 @@ public:
 	bool disableRiverFlow{ true };
 	bool realisticDistantWater{ true };
 	bool removeSunGlints{ true };
-	bool solidDistantWater{ true };
 
 	bool fixDepthProperties{ true };
 	float waterTransparency{ 10.0f };

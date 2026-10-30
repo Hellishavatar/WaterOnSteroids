@@ -9,7 +9,6 @@
 #include <RE/B/BSShaderProperty.h>
 #include <RE/B/BSWaterShaderMaterial.h>
 #include <RE/B/BSWaterShaderProperty.h>
-#include <RE/P/PlayerCamera.h>
 #include <RE/T/TES.h>
 #include <RE/T/TESWaterSystem.h>
 
@@ -24,7 +23,6 @@ namespace
     static_assert(alignof(RE::BSWaterShaderMaterial) <= alignof(std::max_align_t), "Unexpected BSWaterShaderMaterial alignment");
 
     thread_local const RE::BSShaderMaterial* currentSource = nullptr;
-    thread_local float currentSolid = 0.0f;
     thread_local std::uint32_t loadedTechnique = 0;
     thread_local bool distantWaterUpgraded = false;
     thread_local bool riverFlowStripped = false;
@@ -180,21 +178,6 @@ namespace
         return waterMat;
     }
 
-    constexpr float kSolidFogScale = 0.1f;
-    constexpr float kSolidNearHeight = 512.0f;
-    constexpr float kSolidFullHeight = 2048.0f;
-
-    float NearbySolidAmount(const RE::BSWaterShaderProperty* a_property)
-    {
-        auto* camera = RE::PlayerCamera::GetSingleton();
-        if (!camera || !camera->cameraRoot || !a_property || std::abs(a_property->plane.normal.z - 1.0f) > 1e-3f) {
-            return 0.0f;
-        }
-        const float above = camera->cameraRoot->world.translate.z - a_property->plane.constant;
-        const float t = std::clamp((above - kSolidNearHeight) / (kSolidFullHeight - kSolidNearHeight), 0.0f, 1.0f);
-        return t * t * (3.0f - 2.0f * t);
-    }
-
     constexpr float kSeaLevelTolerance = 2.0f;
 
     RE::TESWaterForm* SeaWaterAt(const RE::TESWaterForm* a_type, float a_height)
@@ -204,27 +187,6 @@ namespace
             return nullptr;
         }
         return sea->second;
-    }
-
-    RE::BSWaterShaderMaterial* BuildSolidMaterial(
-        const RE::BSWaterShaderMaterial* a_source,
-        const SettingsSnapshot& a_settings,
-        bool a_overrideActive,
-        float a_amount)
-    {
-        alignas(RE::BSWaterShaderMaterial) static thread_local std::byte scratch[sizeof(RE::BSWaterShaderMaterial)];
-        std::memcpy(scratch, a_overrideActive ? BuildOverrideMaterial(a_source, a_settings) : a_source, sizeof(RE::BSWaterShaderMaterial));
-        auto* waterMat = reinterpret_cast<RE::BSWaterShaderMaterial*>(scratch);
-
-        const float keep = 1.0f - a_amount;
-        const float fogScale = std::pow(kSolidFogScale, a_amount);
-        waterMat->depthProperties.reflections *= keep;
-        waterMat->depthProperties.refraction *= keep;
-        waterMat->depthProperties.normals *= keep;
-        waterMat->depthProperties.specularLighting *= keep;
-        waterMat->aboveWaterFogDistFar = (std::max)(waterMat->aboveWaterFogDistFar * fogScale, 1.0f);
-        waterMat->unk15C = (std::max)(waterMat->unk15C * fogScale, 1.0f);
-        return waterMat;
     }
 }
 
@@ -309,7 +271,6 @@ void WaterShader::Hooked_SetupMaterial(RE::BSShader* a_shader, const RE::BSShade
     }
 
     currentSource = nullptr;
-    currentSolid = 0.0f;
 
     const auto& settings = Settings::GetFastSnapshot();
     if (a_material && a_material->GetType() == RE::BSShaderMaterial::Type::kWater) {
@@ -348,10 +309,6 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
 
             const RE::BSShaderMaterial* source = passMat;
             const bool distant = matching && IsLodWaterGeometry(a_pass->geometry);
-            float solid = 0.0f;
-            if (matching && settings.solidDistantWater) {
-                solid = distant ? (distantWaterUpgraded ? 1.0f : 0.0f) : NearbySolidAmount(waterShaderProp);
-            }
             if (distant) {
                 if (const auto piece = LodWaterSplit::PieceFor(a_pass->geometry)) {
                     auto* type = piece->type;
@@ -375,15 +332,10 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
                 }
             }
 
-            if ((overrideActive || matching) && (source != currentSource || std::abs(solid - currentSolid) > 1e-3f)) {
+            if ((overrideActive || matching) && source != currentSource) {
                 currentSource = source;
-                currentSolid = solid;
                 const auto* water = static_cast<const RE::BSWaterShaderMaterial*>(source);
-                if (solid > 0.0f) {
-                    originalSetupMaterial(a_shader, BuildSolidMaterial(water, settings, overrideActive, solid));
-                } else {
-                    originalSetupMaterial(a_shader, overrideActive ? BuildOverrideMaterial(water, settings) : source);
-                }
+                originalSetupMaterial(a_shader, overrideActive ? BuildOverrideMaterial(water, settings) : source);
                 rebuilt = true;
             }
         }
