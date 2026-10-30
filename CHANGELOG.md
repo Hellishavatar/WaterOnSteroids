@@ -26,6 +26,11 @@
 
 ### Fixed
 
+- Realistic Distant Water no longer shows flickering dark patches on water seen from high above. It
+  kept the game's screen-space reflections at full strength at any distance, where they can only
+  reflect what is on screen. Screen-space reflections now fade out on all water, nearby and
+  distant alike, as the camera rises from 512 to 2048 units above it, so there is no edge between
+  the two; near the surface they are unchanged. Water keeps its color, depth and refraction.
 - Distant water pieces no longer stay behind when their terrain block unloads. The game removes only
   the first water shape of an unloading terrain block, so blocks whose distant water is in several
   pieces left the others in the water system, which grew with every block loaded (over 40,000
