@@ -227,10 +227,6 @@ namespace
 		float         translateZ{ 0.0f };
 		float         boundCenter[3]{};
 		float         boundRadius{ 0.0f };
-		std::uint32_t vertexCount{ 0 };
-		float         vertexZMin{ 0.0f };
-		float         vertexZMax{ 0.0f };
-		bool          heightsFromBound{ false };
 		std::optional<float> fullShaderPlaneZ;
 		bool          matchChecked{ false };
 		bool          piece{ false };
@@ -570,13 +566,6 @@ namespace
 		a_rec.boundCenter[1] = a_geom->worldBound.center.y;
 		a_rec.boundCenter[2] = a_geom->worldBound.center.z;
 		a_rec.boundRadius = a_geom->worldBound.radius;
-
-		if (const auto heights = WaterShader::MeasureMeshHeights(a_geom)) {
-			a_rec.vertexCount = heights->vertexCount;
-			a_rec.vertexZMin = heights->minZ;
-			a_rec.vertexZMax = heights->maxZ;
-			a_rec.heightsFromBound = heights->fromBound;
-		}
 	}
 
 	void AddGeometry(Snapshot& a_snap, RE::BSGeometry* a_geom, const RE::TESWaterObject* a_obj, bool a_underLod)
@@ -801,23 +790,11 @@ namespace
 			planeText = std::format("plane VERTICAL ({:.3f},{:.3f},{:.3f},{:.1f})", a_g.plane[0], a_g.plane[1], nz, a_g.plane[3]);
 		}
 
-		std::string meshText = std::format("mesh translate z {:.1f}, bound centre ({:.0f},{:.0f},{:.1f}) radius {:.0f}",
+		const std::string meshText = std::format("mesh translate z {:.1f}, bound centre ({:.0f},{:.0f},{:.1f}) radius {:.0f}",
 			a_g.translateZ, a_g.boundCenter[0], a_g.boundCenter[1], a_g.boundCenter[2], a_g.boundRadius);
 		std::string verdict;
-		if (a_g.vertexCount > 0) {
-			meshText += std::format(", {} vertices z {:.1f}..{:.1f}{}", a_g.vertexCount, a_g.vertexZMin, a_g.vertexZMax,
-				a_g.heightsFromBound ? " (from the bound: the vertex copy holds no heights)" : "");
-			if (a_g.vertexZMax - a_g.vertexZMin >= 1.0f) {
-				verdict = "MIXED HEIGHTS";
-			} else if (level) {
-				const float off = planeZ - a_g.vertexZMin;
-				verdict = std::abs(off) < 1.0f ? "plane matches mesh" : std::format("PLANE OFF BY {:.1f}", off);
-			}
-		} else {
-			meshText += ", no vertex copy";
-			if (level) {
-				verdict = std::format("plane - bound centre = {:.1f}", planeZ - a_g.boundCenter[2]);
-			}
+		if (level) {
+			verdict = std::format("plane - bound centre = {:.1f}", planeZ - a_g.boundCenter[2]);
 		}
 		if (a_g.fullShaderPlaneZ) {
 			verdict += std::format("{}Full Shader depth plane z {:.1f}", verdict.empty() ? "" : "; ", *a_g.fullShaderPlaneZ);

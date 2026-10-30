@@ -7,28 +7,16 @@
 
 #include <RE/B/BSRenderPass.h>
 #include <RE/B/BSShaderProperty.h>
-#include <RE/B/BSVisit.h>
-#include <RE/B/BSTriShape.h>
 #include <RE/B/BSWaterShaderMaterial.h>
 #include <RE/B/BSWaterShaderProperty.h>
-#include <RE/G/GridCellArray.h>
-#include <RE/N/NiSkinPartition.h>
 #include <RE/P/PlayerCamera.h>
-#include <RE/P/PlayerCharacter.h>
 #include <RE/T/TES.h>
-#include <RE/T/TESObjectCELL.h>
 #include <RE/T/TESWaterSystem.h>
 
 #include <algorithm>
-#include <array>
-#include <bit>
 #include <cmath>
 #include <cstddef>
-#include <cstdlib>
 #include <cstring>
-#include <mutex>
-#include <numbers>
-#include <unordered_map>
 
 namespace
 {
@@ -40,106 +28,6 @@ namespace
     thread_local std::uint32_t loadedTechnique = 0;
     thread_local bool distantWaterUpgraded = false;
     thread_local bool riverFlowStripped = false;
-
-    float HalfToFloat(std::uint16_t a_half)
-    {
-        const std::uint32_t sign = static_cast<std::uint32_t>(a_half & 0x8000u) << 16;
-        std::uint32_t       exponent = (a_half >> 10) & 0x1Fu;
-        std::uint32_t       mantissa = a_half & 0x3FFu;
-        if (exponent == 0) {
-            if (mantissa == 0) {
-                return std::bit_cast<float>(sign);
-            }
-            exponent = 127 - 15 + 1;
-            while ((mantissa & 0x400u) == 0) {
-                mantissa <<= 1;
-                --exponent;
-            }
-            mantissa &= 0x3FFu;
-            return std::bit_cast<float>(sign | (exponent << 23) | (mantissa << 13));
-        }
-        if (exponent == 0x1F) {
-            return std::bit_cast<float>(sign | 0x7F800000u | (mantissa << 13));
-        }
-        return std::bit_cast<float>(sign | ((exponent + 127 - 15) << 23) | (mantissa << 13));
-    }
-
-    struct LocalHeights
-    {
-        const void*   rawVertexData{ nullptr };
-        std::uint32_t count{ 0 };
-        RE::NiBound   bound{};
-        bool          valid{ false };
-        bool          fromBound{ false };
-        float         minZ{ 0.0f };
-        float         maxZ{ 0.0f };
-    };
-
-    thread_local std::unordered_map<const void*, LocalHeights> heightCache;
-
-    bool DecodeLocalHeights(const std::uint8_t* a_raw, std::uint32_t a_count, std::uint32_t a_stride, bool a_fullPrecision, LocalHeights& a_out)
-    {
-        const auto& bound = a_out.bound;
-        const float limit = bound.radius * 1.01f + 1.0f;
-        const float limitSq = limit * limit;
-        for (int attempt = 0; attempt < 2; ++attempt) {
-            const bool full = (attempt == 0) == a_fullPrecision;
-            if (a_count == 0 || a_stride < (full ? 12u : 6u)) {
-                continue;
-            }
-            bool  inside = true;
-            float halfWidth = 0.0f;
-            float halfDepth = 0.0f;
-            float minX = 0.0f;
-            float maxX = 0.0f;
-            float minY = 0.0f;
-            float maxY = 0.0f;
-            float minZ = 0.0f;
-            float maxZ = 0.0f;
-            for (std::uint32_t i = 0; i < a_count && inside; ++i) {
-                const std::uint8_t* vertex = a_raw + static_cast<std::size_t>(i) * a_stride;
-                float               p[3];
-                if (full) {
-                    std::memcpy(p, vertex, sizeof(p));
-                } else {
-                    std::uint16_t half[3];
-                    std::memcpy(half, vertex, sizeof(half));
-                    for (int k = 0; k < 3; ++k) {
-                        p[k] = HalfToFloat(half[k]);
-                    }
-                }
-                const float dx = p[0] - bound.center.x;
-                const float dy = p[1] - bound.center.y;
-                const float dz = p[2] - bound.center.z;
-                inside = dx * dx + dy * dy + dz * dz <= limitSq;
-                halfWidth = (std::max)(halfWidth, std::abs(dx));
-                halfDepth = (std::max)(halfDepth, std::abs(dy));
-                minX = i == 0 ? p[0] : (std::min)(minX, p[0]);
-                maxX = i == 0 ? p[0] : (std::max)(maxX, p[0]);
-                minY = i == 0 ? p[1] : (std::min)(minY, p[1]);
-                maxY = i == 0 ? p[1] : (std::max)(maxY, p[1]);
-                minZ = i == 0 ? p[2] : (std::min)(minZ, p[2]);
-                maxZ = i == 0 ? p[2] : (std::max)(maxZ, p[2]);
-            }
-            if (!inside || (std::max)(maxX - minX, maxY - minY) < bound.radius * 0.5f) {
-                continue;
-            }
-            a_out.valid = true;
-            const float tolerance = (std::max)(2.0f, bound.radius * 0.01f);
-            if (std::abs((minZ + maxZ) * 0.5f - bound.center.z) <= tolerance) {
-                a_out.minZ = minZ;
-                a_out.maxZ = maxZ;
-            } else {
-                const float halfHeightSq = bound.radius * bound.radius - halfWidth * halfWidth - halfDepth * halfDepth;
-                const float halfHeight = std::sqrt((std::max)(halfHeightSq, 0.0f));
-                a_out.fromBound = true;
-                a_out.minZ = bound.center.z - halfHeight;
-                a_out.maxZ = bound.center.z + halfHeight;
-            }
-            return true;
-        }
-        return false;
-    }
 
     bool IsLodWaterGeometry(const RE::BSGeometry* a_geometry)
     {
@@ -349,59 +237,6 @@ bool WaterShader::IsMaterialOverrideActive(const SettingsSnapshot& a_settings)
         HasTransparencyOverride(a_settings));
 }
 
-std::optional<WaterShader::MeshHeights> WaterShader::MeasureMeshHeights(RE::BSGeometry* a_geometry)
-{
-    if (!a_geometry) {
-        return std::nullopt;
-    }
-    auto& runtime = a_geometry->GetGeometryRuntimeData();
-    auto* data = runtime.rendererData;
-    const auto& world = a_geometry->world;
-    const auto& rot = world.rotate.entry;
-    if (!data || std::abs(rot[2][0]) > 1e-4f || std::abs(rot[2][1]) > 1e-4f) {
-        return std::nullopt;
-    }
-    if (const auto piece = LodWaterSplit::PieceFor(a_geometry)) {
-        const float height = world.translate.z + world.scale * rot[2][2] * piece->localZ;
-        auto*       shape = a_geometry->AsTriShape();
-        return MeshHeights{ height, height, shape ? shape->GetTrishapeRuntimeData().vertexCount : 0u, false };
-    }
-    if (!data->rawVertexData) {
-        return std::nullopt;
-    }
-
-    const auto& bound = a_geometry->GetModelData().modelBound;
-    if (heightCache.size() > 4096) {
-        heightCache.clear();
-    }
-    auto& cached = heightCache[a_geometry];
-    if (cached.rawVertexData != data->rawVertexData || cached.bound.radius != bound.radius ||
-        cached.bound.center.x != bound.center.x || cached.bound.center.y != bound.center.y || cached.bound.center.z != bound.center.z) {
-        auto* shape = a_geometry->AsTriShape();
-        if (!shape) {
-            cached = LocalHeights{ data->rawVertexData, 0, bound };
-            return std::nullopt;
-        }
-        const std::uint32_t count = shape->GetTrishapeRuntimeData().vertexCount;
-        cached = LocalHeights{ data->rawVertexData, count, bound };
-        for (const auto* desc : { &runtime.vertexDesc, &data->vertexDesc }) {
-            const auto          bits = std::bit_cast<std::uint64_t>(*desc);
-            const std::uint32_t stride = static_cast<std::uint32_t>(bits & 0xF) * 4;
-            if (DecodeLocalHeights(data->rawVertexData, count, stride, desc->HasFlag(RE::BSGraphics::Vertex::VF_FULLPREC), cached)) {
-                break;
-            }
-        }
-    }
-    if (!cached.valid) {
-        return std::nullopt;
-    }
-
-    const float scale = world.scale * rot[2][2];
-    const float a = world.translate.z + scale * cached.minZ;
-    const float b = world.translate.z + scale * cached.maxZ;
-    return MeshHeights{ (std::min)(a, b), (std::max)(a, b), cached.count, cached.fromBound };
-}
-
 float WaterShader::PieceHeight(const RE::BSGeometry* a_geometry, const LodWaterSplit::Piece& a_piece)
 {
     const auto& world = a_geometry->world;
@@ -520,12 +355,12 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
             if (distant) {
                 if (const auto piece = LodWaterSplit::PieceFor(a_pass->geometry)) {
                     auto* type = piece->type;
-                    if (type && settings.IsRiverFlowDisabled() && type->flags.any(RE::TESWaterForm::Flag::kEnableFlowmap)) {
+                    if (settings.IsRiverFlowDisabled() && type->flags.any(RE::TESWaterForm::Flag::kEnableFlowmap)) {
                         if (auto* sea = SeaWaterAt(type, PieceHeight(a_pass->geometry, *piece))) {
                             type = sea;
                         }
                     }
-                    if (auto* own = type ? TypeMaterial::For(type) : nullptr) {
+                    if (auto* own = TypeMaterial::For(type)) {
                         source = own;
                         matchedMaterial = own;
                     }

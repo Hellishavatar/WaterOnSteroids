@@ -316,7 +316,7 @@ namespace
 		std::string text;
 		for (std::size_t i = 0; i < a_groups.size(); ++i) {
 			const auto& key = a_groups[i].key;
-			text += std::format("{}{:08X} at local {}{} ({} tris)", i ? ", " : "", key.type ? key.type->GetFormID() : 0, key.localZ,
+			text += std::format("{}{:08X} at local {}{} ({} tris)", i ? ", " : "", key.type->GetFormID(), key.localZ,
 				key.exact ? "" : " kept as LOD water", a_groups[i].triangles.size());
 		}
 		return text;

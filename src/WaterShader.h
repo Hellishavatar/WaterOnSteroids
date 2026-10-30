@@ -19,15 +19,6 @@ public:
 
 	static bool IsMaterialOverrideActive(const SettingsSnapshot& a_settings);
 
-	struct MeshHeights
-	{
-		float         minZ{ 0.0f };
-		float         maxZ{ 0.0f };
-		std::uint32_t vertexCount{ 0 };
-		bool          fromBound{ false };
-	};
-	[[nodiscard]] static std::optional<MeshHeights> MeasureMeshHeights(RE::BSGeometry* a_geometry);
-
 	[[nodiscard]] static std::optional<RE::NiPlane> DistantWaterPlane(RE::BSGeometry* a_geometry, const RE::NiPlane& a_stored);
 
 	[[nodiscard]] static float PieceHeight(const RE::BSGeometry* a_geometry, const LodWaterSplit::Piece& a_piece);
