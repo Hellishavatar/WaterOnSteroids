@@ -19,6 +19,10 @@
   a river type), made for their flow maps; without the flow map that wind showed as fast waves
   ending at the sea. River water at the worldspace's sea level, nearby and distant, now uses the
   sea's water type. Rivers at other heights are unchanged.
+- Removed the load checks: the plugin no longer refuses to load when Community Shaders is installed,
+  on runtimes newer than 1.7.104, or in Skyrim VR. Only SE 1.5.97 and AE up to 1.7.104 are
+  supported, and Community Shaders is not supported; with it installed, its own water features may
+  conflict.
 
 ### Fixed
 

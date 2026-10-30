@@ -26,15 +26,6 @@ void InitializeLog()
 	spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
 }
 
-bool IsCommunityShadersInstalled()
-{
-	if (GetModuleHandleW(L"CommunityShaders.dll")) {
-		return true;
-	}
-	std::error_code error;
-	return std::filesystem::exists("Data/SKSE/Plugins/CommunityShaders.dll", error);
-}
-
 void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 {
 	if (!a_message) return;
@@ -58,19 +49,7 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_message)
 SKSEPluginLoad(const SKSE::LoadInterface* a_skse)
 {
 	InitializeLog();
-	if (const auto runtime = a_skse->RuntimeVersion(); runtime > REL::Version(1, 7, 104, 0)) {
-		logger::error("This build supports Skyrim SE and AE up to 1.7.104 only; refusing to load in Skyrim {}.", runtime.string("."));
-		return false;
-	}
-	if (IsCommunityShadersInstalled()) {
-		logger::error("Community Shaders is installed. Water On Steroids does not support it and did not load.");
-		return false;
-	}
 	SKSE::Init(a_skse);
-	if (REL::Module::GetRuntime() == REL::Module::Runtime::VR) {
-		logger::error("This build supports Skyrim SE and AE only; refusing to load in Skyrim VR.");
-		return false;
-	}
 	logger::info("Loaded v{}.{}.{} | {} {}",
 		Plugin::VERSION.major(),
 		Plugin::VERSION.minor(),
