@@ -90,6 +90,10 @@ namespace
             bool  inside = true;
             float halfWidth = 0.0f;
             float halfDepth = 0.0f;
+            float minX = 0.0f;
+            float maxX = 0.0f;
+            float minY = 0.0f;
+            float maxY = 0.0f;
             float minZ = 0.0f;
             float maxZ = 0.0f;
             for (std::uint32_t i = 0; i < a_count && inside; ++i) {
@@ -110,10 +114,14 @@ namespace
                 inside = dx * dx + dy * dy + dz * dz <= limitSq;
                 halfWidth = (std::max)(halfWidth, std::abs(dx));
                 halfDepth = (std::max)(halfDepth, std::abs(dy));
+                minX = i == 0 ? p[0] : (std::min)(minX, p[0]);
+                maxX = i == 0 ? p[0] : (std::max)(maxX, p[0]);
+                minY = i == 0 ? p[1] : (std::min)(minY, p[1]);
+                maxY = i == 0 ? p[1] : (std::max)(maxY, p[1]);
                 minZ = i == 0 ? p[2] : (std::min)(minZ, p[2]);
                 maxZ = i == 0 ? p[2] : (std::max)(maxZ, p[2]);
             }
-            if (!inside) {
+            if (!inside || (std::max)(maxX - minX, maxY - minY) < bound.radius * 0.5f) {
                 continue;
             }
             a_out.valid = true;
@@ -353,8 +361,8 @@ std::optional<WaterShader::MeshHeights> WaterShader::MeasureMeshHeights(RE::BSGe
     if (!data || std::abs(rot[2][0]) > 1e-4f || std::abs(rot[2][1]) > 1e-4f) {
         return std::nullopt;
     }
-    if (const auto known = LodWaterSplit::KnownLocalHeight(a_geometry, data)) {
-        const float height = world.translate.z + world.scale * rot[2][2] * *known;
+    if (const auto piece = LodWaterSplit::PieceFor(a_geometry)) {
+        const float height = world.translate.z + world.scale * rot[2][2] * piece->localZ;
         auto*       shape = a_geometry->AsTriShape();
         return MeshHeights{ height, height, shape ? shape->GetTrishapeRuntimeData().vertexCount : 0u, false };
     }
@@ -394,125 +402,24 @@ std::optional<WaterShader::MeshHeights> WaterShader::MeasureMeshHeights(RE::BSGe
     return MeshHeights{ (std::min)(a, b), (std::max)(a, b), cached.count, cached.fromBound };
 }
 
+float WaterShader::PieceHeight(const RE::BSGeometry* a_geometry, const LodWaterSplit::Piece& a_piece)
+{
+    const auto& world = a_geometry->world;
+    return world.translate.z + world.scale * world.rotate.entry[2][2] * a_piece.localZ;
+}
+
 std::optional<RE::NiPlane> WaterShader::DistantWaterPlane(RE::BSGeometry* a_geometry, const RE::NiPlane& a_stored)
 {
     if (!a_geometry) {
         return std::nullopt;
     }
-    const auto  heights = MeasureMeshHeights(a_geometry);
-    const float height = heights ? heights->maxZ : a_geometry->worldBound.center.z;
+    const auto  piece = LodWaterSplit::PieceFor(a_geometry);
+    const float height = piece ? PieceHeight(a_geometry, *piece) : a_geometry->worldBound.center.z;
     if (std::abs(a_stored.normal.x) < 1e-4f && std::abs(a_stored.normal.y) < 1e-4f && std::abs(a_stored.normal.z - 1.0f) < 1e-4f &&
         std::abs(a_stored.constant - height) < 1.0f) {
         return std::nullopt;
     }
     return RE::NiPlane{ { 0.0f, 0.0f, 1.0f }, height };
-}
-
-RE::NiPointer<RE::TESWaterObject> WaterShader::FindMatchingCloseWater(RE::BSGeometry* a_distant)
-{
-    auto* waterSystem = RE::TESWaterSystem::GetSingleton();
-    if (!a_distant || !waterSystem) {
-        return nullptr;
-    }
-
-    struct CachedCloseWaterMatch
-    {
-        RE::NiPoint3                          center{};
-        std::uint32_t                         waterObjCount{ 0 };
-        std::chrono::steady_clock::time_point time{};
-        RE::NiPointer<RE::TESWaterObject>     match;
-        bool                                  flat{ false };
-    };
-
-    static thread_local std::unordered_map<const RE::BSGeometry*, CachedCloseWaterMatch> s_matchCache;
-    static thread_local std::uint32_t                                                     s_lastWaterCount = 0;
-    static thread_local std::chrono::steady_clock::time_point                             s_waterCountChanged{};
-    constexpr auto        kMatchCacheTtl = std::chrono::milliseconds(250);
-    constexpr auto        kWaterChangeSettle = std::chrono::milliseconds(100);
-    constexpr std::size_t kMatchCacheLimit = 1024;
-
-    const auto&         centre = a_distant->worldBound.center;
-    const std::uint32_t currentCount = waterSystem->waterObjects.size();
-    const auto          now = std::chrono::steady_clock::now();
-
-    if (currentCount != s_lastWaterCount) {
-        s_lastWaterCount = currentCount;
-        s_waterCountChanged = now;
-    }
-    const bool waterSettling = now - s_waterCountChanged < kWaterChangeSettle;
-
-    if (auto it = s_matchCache.find(a_distant); it != s_matchCache.end()) {
-        const auto& entry = it->second;
-        if (entry.center.x == centre.x && entry.center.y == centre.y && entry.center.z == centre.z &&
-            now - entry.time < kMatchCacheTtl &&
-            (!entry.flat || entry.waterObjCount == currentCount || waterSettling)) {
-            return entry.match;
-        }
-    }
-
-    auto store = [&](RE::NiPointer<RE::TESWaterObject> a_match, bool a_flat) {
-        if (s_matchCache.size() >= kMatchCacheLimit) {
-            std::erase_if(s_matchCache, [&](const auto& a_entry) { return now - a_entry.second.time >= kMatchCacheTtl; });
-            if (s_matchCache.size() >= kMatchCacheLimit) {
-                s_matchCache.clear();
-            }
-        }
-        s_matchCache[a_distant] = CachedCloseWaterMatch{ centre, currentCount, now, a_match, a_flat };
-    };
-
-    const auto heights = MeasureMeshHeights(a_distant);
-    if (!heights) {
-        store(nullptr, false);
-        return nullptr;
-    }
-
-    const bool  flat = heights->maxZ - heights->minZ <= 2.0f;
-    const float height = heights->maxZ;
-    auto*       type = CellWaterMap::TypeFor(a_distant, heights->minZ, heights->maxZ);
-    float       bestDistanceSq = (std::numeric_limits<float>::max)();
-    float       bestTypeDistanceSq = (std::numeric_limits<float>::max)();
-    RE::NiPointer<RE::TESWaterObject> best;
-    RE::NiPointer<RE::TESWaterObject> bestType;
-
-    {
-        RE::BSSpinLockGuard guard(waterSystem->lock);
-        for (const auto& water : waterSystem->waterObjects) {
-            if (!water || !water->shape) {
-                continue;
-            }
-            auto* shape = water->shape.get();
-            const auto& plane = water->plane;
-            if (shape == a_distant || IsLodWaterGeometry(shape) || std::abs(plane.normal.z - 1.0f) > 1e-3f) {
-                continue;
-            }
-            const bool sameType = type && water->waterType == type;
-            const bool sameHeight = flat && std::abs(plane.constant - height) <= 2.0f;
-            if (!sameType && !sameHeight) {
-                continue;
-            }
-            auto* property = shape->GetGeometryRuntimeData().shaderProperty.get();
-            if (!property || !property->material || property->material->GetType() != RE::BSShaderMaterial::Type::kWater) {
-                continue;
-            }
-            const float dx = shape->worldBound.center.x - centre.x;
-            const float dy = shape->worldBound.center.y - centre.y;
-            const float distanceSq = dx * dx + dy * dy;
-            if (sameType && distanceSq < bestTypeDistanceSq) {
-                bestTypeDistanceSq = distanceSq;
-                bestType = water;
-            }
-            if (sameHeight && distanceSq < bestDistanceSq) {
-                bestDistanceSq = distanceSq;
-                best = water;
-            }
-        }
-    }
-
-    if (bestType) {
-        best = bestType;
-    }
-    store(best, true);
-    return best;
 }
 
 bool WaterShader::Hooked_SetupTechnique(RE::BSShader* a_shader, std::uint32_t a_technique)
@@ -590,8 +497,6 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
     }
 
     bool rebuilt = false;
-    RE::NiPointer<RE::TESWaterObject> matchedWater;
-    RE::NiPointer<RE::BSTriShape>     matchedShape;
     RE::BSShaderMaterial*             matchedMaterial = nullptr;
     RE::BSWaterShaderProperty*        waterShaderProp = nullptr;
     bool                              riverAtSeaLevel = false;
@@ -613,23 +518,16 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
                 solid = distant ? (distantWaterUpgraded ? 1.0f : 0.0f) : NearbySolidAmount(waterShaderProp);
             }
             if (distant) {
-                const auto heights = MeasureMeshHeights(a_pass->geometry);
-                auto*      type = heights ? CellWaterMap::TypeFor(a_pass->geometry, heights->minZ, heights->maxZ) : nullptr;
-                if (type && settings.IsRiverFlowDisabled() && type->flags.any(RE::TESWaterForm::Flag::kEnableFlowmap)) {
-                    if (auto* sea = SeaWaterAt(type, heights->maxZ)) {
-                        type = sea;
+                if (const auto piece = LodWaterSplit::PieceFor(a_pass->geometry)) {
+                    auto* type = piece->type;
+                    if (type && settings.IsRiverFlowDisabled() && type->flags.any(RE::TESWaterForm::Flag::kEnableFlowmap)) {
+                        if (auto* sea = SeaWaterAt(type, PieceHeight(a_pass->geometry, *piece))) {
+                            type = sea;
+                        }
                     }
-                }
-                if (auto* own = type ? TypeMaterial::For(type) : nullptr) {
-                    source = own;
-                    matchedMaterial = own;
-                } else {
-                    matchedWater = FindMatchingCloseWater(a_pass->geometry);
-                    matchedShape = matchedWater ? matchedWater->shape : nullptr;
-                    auto* property = matchedShape ? matchedShape->GetGeometryRuntimeData().shaderProperty.get() : nullptr;
-                    if (property && property->material && property->material->GetType() == RE::BSShaderMaterial::Type::kWater) {
-                        source = property->material;
-                        matchedMaterial = property->material;
+                    if (auto* own = type ? TypeMaterial::For(type) : nullptr) {
+                        source = own;
+                        matchedMaterial = own;
                     }
                 }
             } else if (matching && riverFlowStripped && std::abs(waterShaderProp->plane.normal.z - 1.0f) < 1e-3f) {

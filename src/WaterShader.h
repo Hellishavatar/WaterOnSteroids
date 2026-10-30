@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PCH.h"
+#include "LodWaterSplit.h"
 #include "Settings.h"
 #include <atomic>
 #include <optional>
@@ -29,7 +30,7 @@ public:
 
 	[[nodiscard]] static std::optional<RE::NiPlane> DistantWaterPlane(RE::BSGeometry* a_geometry, const RE::NiPlane& a_stored);
 
-	[[nodiscard]] static RE::NiPointer<RE::TESWaterObject> FindMatchingCloseWater(RE::BSGeometry* a_distant);
+	[[nodiscard]] static float PieceHeight(const RE::BSGeometry* a_geometry, const LodWaterSplit::Piece& a_piece);
 
 	using SetupTechnique_t = bool (*)(RE::BSShader*, std::uint32_t);
 	static bool Hooked_SetupTechnique(RE::BSShader* a_shader, std::uint32_t a_technique);

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(WaterOnSteroids VERSION 1.3.0 LANGUAGES CXX)
+project(WaterOnSteroids VERSION 1.5.0 LANGUAGES CXX)
 
 set(PLUGIN_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
 if(PLUGIN_VERSION_PATCH STREQUAL "")

@@ -1,27 +1,34 @@
 # Changelog
 
-## Unreleased
+## 1.5.0
 
 ### Changed
 
-- Distant water is split at water type borders. When a terrain block loads, distant water is also
-  split by the water type of each cell, cut exactly at the cell edges, and each part copies nearby
-  water of its own type. Before, a whole distant block took the type of most of its cells, so where
-  two water types meet, such as the river mouth below Solitude, the waves changed speed along a
-  straight block edge instead of where the cells change. Only active with Full Shader for Distant
+- Distant water takes the water type and height of the cell it lies in. When a terrain block loads,
+  each distant (LOD) water triangle gets the water type and exact water height of its cell from
+  your plugins' cell records (read once at startup), so distant water matches nearby water of the
+  same cell everywhere, also where water types meet, such as the river mouth below Solitude, and at
+  the far LOD levels. The few triangles no cell record covers (about 0.05% in vanilla) stay vanilla
+  LOD water. Distant water no longer copies nearby water. Only active with Full Shader for Distant
   Water on.
 - Distant water now takes its look from its own water type. Each distant piece uses a material built
   from its water type's record, with that type's wave textures and wind, the way the game builds it
-  for nearby water, whether or not water of that type is loaded nearby. Before, distant water
-  copied loaded nearby water, so a type that wasn't loaded copied whichever water was nearest at the
-  same height, and neighbouring pieces could get different water (at the river mouth below
-  Solitude, one copied the river and the next the sea). Copying nearby water remains the fallback
-  for pieces whose water type isn't known.
+  for nearby water, whether or not water of that type is loaded nearby.
 - With Disable River Flow on, river water at sea level now moves like the sea. River water types
   have much faster wind than the sea (3 to 5 times at the Solitude harbour, which Update.esm gives
   a river type), made for their flow maps; without the flow map that wind showed as fast waves
   ending at the sea. River water at the worldspace's sea level, nearby and distant, now uses the
   sea's water type. Rivers at other heights are unchanged.
+
+### Fixed
+
+- Distant water pieces no longer stay behind when their terrain block unloads. The game removes only
+  the first water shape of an unloading terrain block, so blocks whose distant water is in several
+  pieces left the others in the water system, which grew with every block loaded (over 40,000
+  objects after a minute of flying over the map with tfc) and lowered the frame rate. All pieces are
+  now removed.
+- Far distant sea in Solstheim (and a few Tamriel blocks) used a depth plane at height 0 instead of
+  the sea level, because its vertex positions were read in the wrong format.
 
 ## 1.3.0
 

@@ -1,5 +1,4 @@
 #include "CellWaterMap.h"
-#include "LodWaterSplit.h"
 
 #include <RE/T/TES.h>
 #include <RE/T/TESDataHandler.h>
@@ -25,9 +24,6 @@
 
 namespace
 {
-	constexpr float         kCellSize = 4096.0f;
-	constexpr float         kHeightTolerance = 2.0f;
-	constexpr std::int32_t  kMaxSpan = 64;
 	constexpr std::uint32_t kCompressed = 0x40000;
 	constexpr std::uint8_t  kHasWater = 0x02;
 	constexpr std::size_t   kLoggedCells = 100;
@@ -337,14 +333,6 @@ namespace
 		}
 		return map;
 	}
-
-	struct CachedType
-	{
-		RE::NiPoint3      center{};
-		float             radius{ 0.0f };
-		const Map*        map{ nullptr };
-		RE::TESWaterForm* type{ nullptr };
-	};
 }
 
 void CellWaterMap::Scan()
@@ -364,67 +352,30 @@ RE::TESWorldSpace* CellWaterMap::LodWorld()
 	return world;
 }
 
-RE::TESWaterForm* CellWaterMap::TypeFor(const RE::BSGeometry* a_geometry, float a_minZ, float a_maxZ)
+CellWaterMap::Cells::Cells(RE::TESWorldSpace* a_world) :
+	map(a_world ? MapFor(a_world) : nullptr)
+{}
+
+CellWaterMap::CellWater CellWaterMap::Cells::At(std::int32_t a_x, std::int32_t a_y) const
 {
-	auto* world = LodWorld();
-	if (!a_geometry || !world) {
-		return nullptr;
-	}
-	const auto map = MapFor(world);
-	if (!map) {
-		return nullptr;
-	}
+	const auto* cells = static_cast<const Map*>(map.get());
+	const auto  it = cells->cells.find(Key(a_x, a_y));
+	const Cell  cell = it != cells->cells.end() ? it->second : Cell{};
+	return CellWater{ std::isnan(cell.height) ? cells->defaultHeight : cell.height, cell.type ? cell.type : cells->defaultType, cell.water };
+}
 
-	if (auto* known = LodWaterSplit::KnownType(a_geometry)) {
-		return known;
-	}
-
-	static thread_local std::unordered_map<const RE::BSGeometry*, CachedType> cache;
-	const auto& bound = a_geometry->worldBound;
-	if (const auto it = cache.find(a_geometry); it != cache.end()) {
-		const auto& c = it->second;
-		if (c.map == map.get() && c.radius == bound.radius && c.center.x == bound.center.x && c.center.y == bound.center.y && c.center.z == bound.center.z) {
-			return c.type;
+RE::TESWaterForm* CellWaterMap::LodWaterType(RE::TESWorldSpace* a_world)
+{
+	for (auto* world = a_world; world; world = world->parentWorld) {
+		if (world->lodWater) {
+			return world->lodWater;
+		}
+		if (!world->parentUseFlags.any(RE::TESWorldSpace::ParentUseFlag::kUseLODData)) {
+			break;
 		}
 	}
-	if (cache.size() > 4096) {
-		cache.clear();
-	}
-
-	const auto cellOf = [](float a_v) { return static_cast<std::int32_t>(std::floor(a_v / kCellSize)); };
-	const std::int32_t minX = cellOf(bound.center.x - bound.radius);
-	const std::int32_t maxX = (std::min)(cellOf(bound.center.x + bound.radius), minX + kMaxSpan);
-	const std::int32_t minY = cellOf(bound.center.y - bound.radius);
-	const std::int32_t maxY = (std::min)(cellOf(bound.center.y + bound.radius), minY + kMaxSpan);
-
-	std::unordered_map<RE::TESWaterForm*, std::uint32_t> votes;
-	for (std::int32_t x = minX; x <= maxX; ++x) {
-		for (std::int32_t y = minY; y <= maxY; ++y) {
-			const auto it = map->cells.find(Key(x, y));
-			const Cell cell = it != map->cells.end() ? it->second : Cell{};
-			if (!cell.water) {
-				continue;
-			}
-			const float height = std::isnan(cell.height) ? map->defaultHeight : cell.height;
-			if (height < a_minZ - kHeightTolerance || height > a_maxZ + kHeightTolerance) {
-				continue;
-			}
-			if (auto* type = cell.type ? cell.type : map->defaultType) {
-				++votes[type];
-			}
-		}
-	}
-
-	RE::TESWaterForm* best = nullptr;
-	std::uint32_t     bestVotes = 0;
-	for (const auto& [type, count] : votes) {
-		if (count > bestVotes) {
-			best = type;
-			bestVotes = count;
-		}
-	}
-	cache[a_geometry] = CachedType{ bound.center, bound.radius, map.get(), best };
-	return best;
+	const auto map = a_world ? MapFor(a_world) : nullptr;
+	return map ? map->defaultType : nullptr;
 }
 
 std::optional<std::pair<float, RE::TESWaterForm*>> CellWaterMap::DefaultWater()
@@ -438,30 +389,4 @@ std::optional<std::pair<float, RE::TESWaterForm*>> CellWaterMap::DefaultWater()
 		return std::nullopt;
 	}
 	return std::make_pair(map->defaultHeight, map->defaultType);
-}
-
-std::vector<RE::TESWaterForm*> CellWaterMap::TypesAt(std::int32_t a_minX, std::int32_t a_minY, std::int32_t a_maxX, std::int32_t a_maxY, float a_height)
-{
-	auto* world = LodWorld();
-	if (!world || a_maxX < a_minX || a_maxY < a_minY || a_maxX - a_minX > kMaxSpan || a_maxY - a_minY > kMaxSpan) {
-		return {};
-	}
-	const auto map = MapFor(world);
-	if (!map) {
-		return {};
-	}
-
-	const std::int32_t             width = a_maxX - a_minX + 1;
-	std::vector<RE::TESWaterForm*> types(static_cast<std::size_t>(width) * (a_maxY - a_minY + 1), nullptr);
-	for (std::int32_t y = a_minY; y <= a_maxY; ++y) {
-		for (std::int32_t x = a_minX; x <= a_maxX; ++x) {
-			const auto it = map->cells.find(Key(x, y));
-			const Cell cell = it != map->cells.end() ? it->second : Cell{};
-			const float height = std::isnan(cell.height) ? map->defaultHeight : cell.height;
-			if (cell.water && std::abs(height - a_height) <= kHeightTolerance) {
-				types[static_cast<std::size_t>(y - a_minY) * width + (x - a_minX)] = cell.type ? cell.type : map->defaultType;
-			}
-		}
-	}
-	return types;
 }

@@ -2,18 +2,37 @@
 
 #include "PCH.h"
 
+#include <memory>
 #include <optional>
 #include <utility>
 
 namespace CellWaterMap
 {
+	struct CellWater
+	{
+		float             height{ 0.0f };
+		RE::TESWaterForm* type{ nullptr };
+		bool              water{ false };
+	};
+
 	void Scan();
 
 	[[nodiscard]] RE::TESWorldSpace* LodWorld();
 
-	[[nodiscard]] RE::TESWaterForm* TypeFor(const RE::BSGeometry* a_geometry, float a_minZ, float a_maxZ);
+	class Cells
+	{
+	public:
+		explicit Cells(RE::TESWorldSpace* a_world);
+
+		[[nodiscard]] explicit operator bool() const { return map != nullptr; }
+
+		[[nodiscard]] CellWater At(std::int32_t a_x, std::int32_t a_y) const;
+
+	private:
+		std::shared_ptr<const void> map;
+	};
+
+	[[nodiscard]] RE::TESWaterForm* LodWaterType(RE::TESWorldSpace* a_world);
 
 	[[nodiscard]] std::optional<std::pair<float, RE::TESWaterForm*>> DefaultWater();
-
-	[[nodiscard]] std::vector<RE::TESWaterForm*> TypesAt(std::int32_t a_minX, std::int32_t a_minY, std::int32_t a_maxX, std::int32_t a_maxY, float a_height);
 }

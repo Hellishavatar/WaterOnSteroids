@@ -7,9 +7,14 @@
 class LodWaterSplit
 {
 public:
+	struct Piece
+	{
+		RE::TESWaterForm* type{ nullptr };
+		float             localZ{ 0.0f };
+		bool              exact{ false };
+	};
+
 	static void Install();
 
-	[[nodiscard]] static std::optional<float> KnownLocalHeight(const RE::BSGeometry* a_geometry, const RE::BSGraphics::TriShape* a_rendererData);
-
-	[[nodiscard]] static RE::TESWaterForm* KnownType(const RE::BSGeometry* a_geometry);
+	[[nodiscard]] static std::optional<Piece> PieceFor(const RE::BSGeometry* a_geometry);
 };
