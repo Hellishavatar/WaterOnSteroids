@@ -160,14 +160,14 @@ namespace
 						if (!map) {
 							map = DefaultMap(world);
 						}
-						ReadCells(a_pos + sizeof(Header), a_pos + h.size, *map);
+						ReadCells(a_pos + sizeof(Header), a_pos + h.size, *map, false);
 					}
 				}
 				a_pos += h.size;
 			}
 		}
 
-		void ReadCells(std::uint64_t a_pos, std::uint64_t a_end, Map& a_map)
+		void ReadCells(std::uint64_t a_pos, std::uint64_t a_end, Map& a_map, bool a_inBlock)
 		{
 			while (a_pos + sizeof(Header) <= a_end) {
 				Header h{};
@@ -180,12 +180,12 @@ namespace
 					}
 					const auto groupType = static_cast<std::int32_t>(h.id);
 					if (groupType == 4 || groupType == 5) {
-						ReadCells(a_pos + sizeof(Header), a_pos + h.size, a_map);
+						ReadCells(a_pos + sizeof(Header), a_pos + h.size, a_map, true);
 					}
 					a_pos += h.size;
 					continue;
 				}
-				if (h.type == Tag("CELL")) {
+				if (a_inBlock && h.type == Tag("CELL")) {
 					ReadCell(a_pos + sizeof(Header), h, a_map);
 				}
 				a_pos += sizeof(Header) + h.size;
