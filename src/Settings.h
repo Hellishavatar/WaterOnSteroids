@@ -31,7 +31,7 @@ struct SettingsSnapshot
 	std::array<float, 3> deepColorScale{ 1.0f, 1.0f, 1.0f };
 	std::array<float, 3> reflectionColorScale{ 1.0f, 1.0f, 1.0f };
 
-	[[nodiscard]] bool IsRiverFlowDisabled() const noexcept { return disableRiverFlow || realisticDistantWater; }
+	[[nodiscard]] bool IsRiverFlowDisabled() const noexcept { return disableRiverFlow; }
 };
 
 class Settings
@@ -323,10 +323,9 @@ public:
 		flag("bClearUnderwater", clearUnderwater);
 		line("# Full Shader for Distant Water: distant water uses the same shader and colors as nearby water.");
 		flag("bFullShaderDistantWater", fullShaderDistantWater);
-		line("# Disable River Flow: removes river flow to hide the seam with distant water.");
-		line("# Always on while bRealisticDistantWater is true.");
+		line("# Disable River Flow: hides the seam where rivers meet distant water; set false to keep river flow, with the seam.");
 		flag("bDisableRiverFlow", disableRiverFlow);
-		line("# Realistic Distant Water: keeps water color and depth at any distance. Also turns on bDisableRiverFlow.");
+		line("# Realistic Distant Water: keeps water color and depth at any distance.");
 		flag("bRealisticDistantWater", realisticDistantWater);
 		line("# Remove Sun Glints: removes the flashing sun specks on calm water.");
 		flag("bRemoveSunGlints", removeSunGlints);

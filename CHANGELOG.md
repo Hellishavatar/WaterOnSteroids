@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Disable River Flow is now its own switch. Realistic Distant Water no longer forces it on, so you
+  can keep river flow with Realistic Distant Water on, with a visible seam where rivers meet distant
+  water.
+
 ## 1.5.0
 
 ### Changed

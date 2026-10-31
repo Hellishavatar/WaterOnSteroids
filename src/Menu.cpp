@@ -1266,23 +1266,15 @@ namespace Menu
 				ImGui::Checkbox("Realistic Distant Water", &settings.realisticDistantWater);
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip(
-						"Keeps water color and depth at any distance instead of a flat sky reflection.\n"
-						"Also turns on Disable River Flow.");
+						"Keeps water color and depth at any distance instead of a flat sky reflection.");
 				}
 
 				if (featureTable) ImGui::TableNextColumn();
-				const bool riverFlowForced = settings.realisticDistantWater;
-				bool       riverFlowShown = riverFlowForced || settings.disableRiverFlow;
-				ImGui::BeginDisabled(riverFlowForced);
-				ImGui::Checkbox("Disable River Flow", riverFlowForced ? &riverFlowShown : &settings.disableRiverFlow);
-				ImGui::EndDisabled();
-				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+				ImGui::Checkbox("Disable River Flow", &settings.disableRiverFlow);
+				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip(
-						"%s"
-						"Removes river flow to hide the seam where rivers meet distant water.",
-						riverFlowForced ?
-							"Always on while Realistic Distant Water is on.\n\n" :
-							"");
+						"Removes river flow to hide the seam where rivers meet distant water.\n"
+						"Turn off to keep river flow, with the seam.");
 				}
 
 				if (featureTable) {
