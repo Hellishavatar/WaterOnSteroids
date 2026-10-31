@@ -156,7 +156,7 @@ void ShaderPatch::ReportStatus()
 	} else if (!deviceHooked) {
 		logger::error("Realistic Distant Water: the game's D3D11 device was not hooked; distant water stays vanilla.");
 	} else {
-		logger::info("Realistic Distant Water: {} water pixel shaders patched so far ({} refused); distant water keeps its color, depth and refraction, and screen-space reflections fade out over a longer distance.",
+		logger::info("Realistic Distant Water: {} water pixel shaders patched so far ({} refused); distant water keeps its color, depth and refraction, and screen-space reflections keep the game's own distance fade.",
 			shadersPatched.load(), patchFailures.load());
 	}
 }

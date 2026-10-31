@@ -18,8 +18,6 @@ namespace ShaderBytecode
 		constexpr std::uint32_t kOperandImmediate32 = 4;
 		constexpr std::uint32_t kOperandConstantBuffer = 8;
 		constexpr std::uint32_t kImmediateOne = 0x3F800000;
-		constexpr std::uint32_t kImmediateHalf = 0x3F000000;
-		constexpr std::uint32_t kNopToken = 0x0100003A;
 		constexpr std::uint32_t kScalarImmediateToken = 0x00004001;
 
 		struct Operand
@@ -146,16 +144,7 @@ namespace ShaderBytecode
 			       a_operand.ReadMask() == 0b0001;
 		}
 
-		struct Sites
-		{
-			std::vector<std::size_t> reads;
-			std::size_t              weight{ 0 };
-			std::size_t              weightEnd{ 0 };
-			std::size_t              scale{ 0 };
-			bool                     reflections{ false };
-		};
-
-		inline std::optional<Sites> FindSites(const std::vector<Instruction>& a_program)
+		inline std::optional<std::vector<std::size_t>> FindSites(const std::vector<Instruction>& a_program)
 		{
 			for (std::size_t k = 0; k < a_program.size(); ++k) {
 				const auto& weight = a_program[k];
@@ -164,14 +153,11 @@ namespace ShaderBytecode
 				}
 				const auto& dst = weight.operands[0];
 				const auto  mask = dst.WriteMask();
-				if (dst.type != kOperandTemp || dst.dims != 1 || mask == 0 || (mask & (mask - 1)) != 0 || dst.pos != weight.pos + 1) {
+				if (dst.type != kOperandTemp || dst.dims != 1 || mask == 0 || (mask & (mask - 1)) != 0) {
 					return std::nullopt;
 				}
-				const auto reg = dst.index[0];
-				Sites      sites;
-				sites.weight = weight.pos;
-				sites.weightEnd = weight.pos + weight.length;
-				sites.scale = weight.operands[2].pos;
+				const auto           reg = dst.index[0];
+				std::vector<std::size_t> sites;
 				for (std::size_t i = k + 1; i < a_program.size(); ++i) {
 					const auto& inst = a_program[i];
 					if (inst.operands.empty()) {
@@ -192,20 +178,19 @@ namespace ShaderBytecode
 							}
 						}
 						if (reflections) {
-							sites.reflections = true;
 							continue;
 						}
 						if (src.extended || src.end - src.pos != 2) {
 							return std::nullopt;
 						}
-						sites.reads.push_back(src.pos);
+						sites.push_back(src.pos);
 					}
 					const auto& out = inst.operands[0];
 					if (out.type == kOperandTemp && out.dims == 1 && out.index[0] == reg && (out.WriteMask() & mask) != 0) {
 						break;
 					}
 				}
-				if (sites.reads.empty() && !sites.reflections) {
+				if (sites.empty()) {
 					return std::nullopt;
 				}
 				return sites;
@@ -338,19 +323,9 @@ namespace ShaderBytecode
 			return std::nullopt;
 		}
 		std::vector<std::uint8_t> out(bytes, bytes + a_length);
-		for (const auto site : sites->reads) {
+		for (const auto site : *sites) {
 			const std::uint32_t replacement[2]{ detail::kScalarImmediateToken, detail::kImmediateOne };
 			std::memcpy(out.data() + programOffset + 4 * site, replacement, sizeof(replacement));
-		}
-		if (sites->reflections) {
-			const std::uint32_t length = static_cast<std::uint32_t>(sites->scale + 4 - sites->weight);
-			const std::uint32_t opcode = (tokens[sites->weight] & ~(0x7Fu << 24)) | (length << 24);
-			const std::uint32_t fade[4]{ detail::kScalarImmediateToken, detail::kImmediateHalf, detail::kScalarImmediateToken, detail::kImmediateHalf };
-			std::memcpy(out.data() + programOffset + 4 * sites->weight, &opcode, sizeof(opcode));
-			std::memcpy(out.data() + programOffset + 4 * sites->scale, fade, sizeof(fade));
-			for (std::size_t p = sites->scale + 4; p < sites->weightEnd; ++p) {
-				std::memcpy(out.data() + programOffset + 4 * p, &detail::kNopToken, sizeof(detail::kNopToken));
-			}
 		}
 		detail::WriteChecksum(out);
 		return out;

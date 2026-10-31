@@ -7,10 +7,6 @@
 - Disable River Flow is now its own switch. Realistic Distant Water no longer forces it on, so you
   can keep river flow with Realistic Distant Water on, with a visible seam where rivers meet distant
   water.
-- Realistic Distant Water lets screen-space reflections fade out more slowly. They used to be gone
-  at 8192 units; they are now at half strength there and gone about one cell further out, so water
-  keeps them a little longer. Water color, depth and refraction are unchanged. A very slight
-  flicker may show when flying close to water.
 
 ## 1.5.0
 
