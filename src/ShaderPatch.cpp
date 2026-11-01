@@ -1,6 +1,7 @@
 #include "ShaderPatch.h"
 #include "ShaderBytecode.h"
 #include "Settings.h"
+#include "WaterShader.h"
 
 #include <RE/T/TESWaterSystem.h>
 
@@ -29,7 +30,7 @@ namespace
 	bool Active()
 	{
 		const auto& settings = Settings::GetFastSnapshot();
-		if (!settings.enabled || !settings.realisticDistantWater) {
+		if (!settings.enabled || !settings.realisticDistantWater || WaterShader::IsWorldMapOpen()) {
 			return false;
 		}
 		const auto* waterSystem = RE::TESWaterSystem::GetSingleton();

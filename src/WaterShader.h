@@ -19,6 +19,10 @@ public:
 
 	static bool IsMaterialOverrideActive(const SettingsSnapshot& a_settings);
 
+	[[nodiscard]] static bool IsWorldMapOpen() noexcept { return worldMapOpen.load(std::memory_order_relaxed); }
+
+	static void SetWorldMapOpen(bool a_open) noexcept { worldMapOpen.store(a_open, std::memory_order_relaxed); }
+
 	[[nodiscard]] static std::optional<RE::NiPlane> DistantWaterPlane(RE::BSGeometry* a_geometry, const RE::NiPlane& a_stored);
 
 	[[nodiscard]] static float PieceHeight(const RE::BSGeometry* a_geometry, const LodWaterSplit::Piece& a_piece);
@@ -39,6 +43,7 @@ private:
 
 	std::atomic<bool> hookInstalled{ false };
 
+	static inline std::atomic<bool> worldMapOpen{ false };
 	static inline SetupTechnique_t originalSetupTechnique{ nullptr };
 	static inline SetupMaterial_t originalSetupMaterial{ nullptr };
 	static inline SetupGeometry_t originalSetupGeometry{ nullptr };

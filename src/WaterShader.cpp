@@ -9,6 +9,7 @@
 #include <RE/B/BSShaderProperty.h>
 #include <RE/B/BSWaterShaderMaterial.h>
 #include <RE/B/BSWaterShaderProperty.h>
+#include <RE/M/MapMenu.h>
 #include <RE/T/TES.h>
 #include <RE/T/TESWaterSystem.h>
 
@@ -58,7 +59,7 @@ namespace
     constexpr std::uint32_t kFlagCubemap = 1u << 8;
     constexpr std::uint32_t kFlagFlowmap = 1u << 9;
 
-    std::uint32_t UpgradeLodWaterTechnique(std::uint32_t a_technique)
+    std::uint32_t UpgradeLodWaterTechnique(std::uint32_t a_technique, bool a_seeThrough)
     {
         if (a_technique < kWaterTechniqueBase || a_technique >= kWaterTechniqueEnd) {
             return a_technique;
@@ -68,7 +69,7 @@ namespace
             return a_technique;
         }
         const std::uint32_t kept = descriptor & (kFlagVertexColor | kFlagReflections | kFlagCubemap);
-        return kWaterTechniqueBase + (kept | kFlagRefractions | kFlagDepth);
+        return kWaterTechniqueBase + (a_seeThrough ? kept | kFlagRefractions | kFlagDepth : kept);
     }
 
     std::uint32_t StripRiverFlowTechnique(std::uint32_t a_technique)
@@ -158,25 +159,50 @@ namespace
         std::memcpy(scratch, a_source, sizeof(RE::BSWaterShaderMaterial));
         auto* waterMat = reinterpret_cast<RE::BSWaterShaderMaterial*>(scratch);
 
-        if (a_settings.fixDepthProperties) {
+        const bool mapOpen = WaterShader::IsWorldMapOpen();
+
+        if (a_settings.fixDepthProperties && !mapOpen) {
             waterMat->depthProperties.reflections = a_settings.depthReflections;
             waterMat->depthProperties.refraction = a_settings.depthRefraction;
             waterMat->depthProperties.normals = a_settings.depthNormals;
             waterMat->depthProperties.specularLighting = a_settings.depthSpecularLighting;
         }
 
-        if (HasTransparencyOverride(a_settings)) {
+        if (HasTransparencyOverride(a_settings) && !mapOpen) {
             ApplyTransparency(waterMat, a_settings.waterTransparency);
         }
 
         ApplyWaterColorOverrides(waterMat, a_source, a_settings);
 
-        if (a_settings.removeSunGlints) {
+        if (a_settings.removeSunGlints && !mapOpen) {
             waterMat->sunSparkleMagnitude = 0.0f;
         }
 
         return waterMat;
     }
+
+    std::atomic<std::uint64_t> worldMapDraws{ 0 };
+
+    class WorldMapWatcher : public RE::BSTEventSink<RE::MenuOpenCloseEvent>
+    {
+    public:
+        static WorldMapWatcher* GetSingleton()
+        {
+            static WorldMapWatcher instance;
+            return &instance;
+        }
+
+        RE::BSEventNotifyControl ProcessEvent(const RE::MenuOpenCloseEvent* a_event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*) override
+        {
+            if (a_event && a_event->menuName == RE::MapMenu::MENU_NAME) {
+                WaterShader::SetWorldMapOpen(a_event->opening);
+                if (!a_event->opening) {
+                    logger::info("World map closed: {} distant water draws with Full Shader without refraction or depth, one water type and custom colors only.", worldMapDraws.exchange(0));
+                }
+            }
+            return RE::BSEventNotifyControl::kContinue;
+        }
+    };
 
     constexpr float kSeaLevelTolerance = 2.0f;
 
@@ -231,7 +257,7 @@ bool WaterShader::Hooked_SetupTechnique(RE::BSShader* a_shader, std::uint32_t a_
     if (settings.enabled && settings.fullShaderDistantWater) {
         const auto* waterSystem = RE::TESWaterSystem::GetSingleton();
         if (!waterSystem || !waterSystem->playerUnderwater) {
-            technique = UpgradeLodWaterTechnique(a_technique);
+            technique = UpgradeLodWaterTechnique(a_technique, !IsWorldMapOpen());
         }
     }
 
@@ -244,7 +270,7 @@ bool WaterShader::Hooked_SetupTechnique(RE::BSShader* a_shader, std::uint32_t a_
     distantWaterUpgraded = technique != a_technique;
 
     riverFlowStripped = false;
-    if (settings.enabled && settings.IsRiverFlowDisabled()) {
+    if (settings.enabled && settings.IsRiverFlowDisabled() && !IsWorldMapOpen()) {
         const std::uint32_t still = StripRiverFlowTechnique(technique);
         riverFlowStripped = still != technique;
         if (riverFlowStripped) {
@@ -312,7 +338,12 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
             if (distant) {
                 if (const auto piece = LodWaterSplit::PieceFor(a_pass->geometry)) {
                     auto* type = piece->type;
-                    if (settings.IsRiverFlowDisabled() && type->flags.any(RE::TESWaterForm::Flag::kEnableFlowmap)) {
+                    if (IsWorldMapOpen()) {
+                        if (const auto sea = CellWaterMap::DefaultWater()) {
+                            type = sea->second;
+                            ++worldMapDraws;
+                        }
+                    } else if (settings.IsRiverFlowDisabled() && type->flags.any(RE::TESWaterForm::Flag::kEnableFlowmap)) {
                         if (auto* sea = SeaWaterAt(type, PieceHeight(a_pass->geometry, *piece))) {
                             type = sea;
                         }
@@ -415,6 +446,9 @@ bool WaterShader::Initialize()
         originalSetupGeometry = reinterpret_cast<SetupGeometry_t>(vtbl.write_vfunc(6, &Hooked_SetupGeometry));
         logger::info("WaterShader: hooked BSWaterShader::SetupTechnique vtable[2] (original: 0x{:X}), SetupMaterial vtable[4] (original: 0x{:X}) and SetupGeometry vtable[6] (original: 0x{:X}).",
             reinterpret_cast<std::uintptr_t>(originalSetupTechnique), reinterpret_cast<std::uintptr_t>(originalSetupMaterial), reinterpret_cast<std::uintptr_t>(originalSetupGeometry));
+        if (auto* ui = RE::UI::GetSingleton()) {
+            ui->AddEventSink<RE::MenuOpenCloseEvent>(WorldMapWatcher::GetSingleton());
+        }
     }
 
     return hookInstalled.load();

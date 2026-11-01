@@ -7,6 +7,9 @@
 - Disable River Flow is now its own switch. Realistic Distant Water no longer forces it on, so you
   can keep river flow with Realistic Distant Water on, with a visible seam where rivers meet distant
   water.
+- Fixed squares and seams in the world map's water. While the map is open, distant water uses the
+  worldspace's default water type without refraction or depth, and only Full Shader for Distant
+  Water and custom colors apply; the normal view is unchanged.
 
 ## 1.5.0
 
