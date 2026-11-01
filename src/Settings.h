@@ -321,11 +321,11 @@ public:
 		line("[Features]");
 		line("# Clear Underwater: reduces the underwater blur.");
 		flag("bClearUnderwater", clearUnderwater);
-		line("# Full Shader for Distant Water: distant water uses the same shader and colors as nearby water.");
+		line("# Full Shader for Distant Water: draws distant water with the full shader (refraction, depth, full waves) and each cell's own water type and height.");
 		flag("bFullShaderDistantWater", fullShaderDistantWater);
 		line("# Disable River Flow: hides the seam where rivers meet distant water; set false to keep river flow, with the seam.");
 		flag("bDisableRiverFlow", disableRiverFlow);
-		line("# Realistic Distant Water: keeps water color and depth at any distance.");
+		line("# Realistic Distant Water: far water keeps its real color, depth and refraction instead of fading to a bright blue sky; keep Disable River Flow on to hide the seam where rivers meet distant water.");
 		flag("bRealisticDistantWater", realisticDistantWater);
 		line("# Remove Sun Glints: removes the flashing sun specks on calm water.");
 		flag("bRemoveSunGlints", removeSunGlints);

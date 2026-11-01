@@ -1250,8 +1250,10 @@ namespace Menu
 				ImGui::Checkbox("Full Shader for Distant Water", &settings.fullShaderDistantWater);
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip(
-						"Distant water uses the same shader as nearby water,\n"
-						"with the colors of the nearest lake or river.");
+						"Draws distant water with the full water shader: refraction, depth and full waves.\n"
+						"Each distant cell uses its own water type and height.\n"
+						"Without Realistic Distant Water, these fade out with distance\n"
+						"and far water turns bright blue.");
 				}
 
 				if (featureTable) ImGui::TableNextColumn();
@@ -1266,7 +1268,9 @@ namespace Menu
 				ImGui::Checkbox("Realistic Distant Water", &settings.realisticDistantWater);
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip(
-						"Keeps water color and depth at any distance instead of a flat sky reflection.");
+						"Far water keeps its real color, depth and refraction instead of fading to a bright blue sky.\n"
+						"Needs Full Shader for Distant Water.\n"
+						"Keep Disable River Flow on to hide the seam where rivers meet distant water.");
 				}
 
 				if (featureTable) ImGui::TableNextColumn();

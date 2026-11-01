@@ -7,9 +7,13 @@
 - Disable River Flow is now its own switch. Realistic Distant Water no longer forces it on, so you
   can keep river flow with Realistic Distant Water on, with a visible seam where rivers meet distant
   water.
+- Realistic Distant Water is back to the frame-wide shader flag it used before 1.5.0, and the patched
+  water pixel shaders and their D3D11 hooks are gone. Screen-space reflections stay at full strength
+  at any distance, so the flickering dark patches on water seen from high above can return. It works
+  the same with ENB as without it again; set it false if ENB has `DisableDistantReflection=true`.
 - Fixed squares and seams in the world map's water. While the map is open, distant water uses the
   worldspace's default water type without refraction or depth, and only Full Shader for Distant
-  Water and custom colors apply; the normal view is unchanged.
+  Water, Realistic Distant Water and custom colors apply; the normal view is unchanged.
 
 ## 1.5.0
 
