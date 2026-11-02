@@ -11,12 +11,15 @@
 #include <RE/B/BSWaterShaderProperty.h>
 #include <RE/M/MapMenu.h>
 #include <RE/T/TES.h>
+#include <RE/T/TESDataHandler.h>
 #include <RE/T/TESWaterSystem.h>
 
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstring>
+#include <unordered_map>
+#include <vector>
 
 namespace
 {
@@ -151,9 +154,76 @@ namespace
         a_mat->unk15C = (std::max)(farPlane - nearPlane, kMinDistance);
     }
 
+    struct OwnLookWater
+    {
+        std::uint32_t    localID;
+        std::string_view file;
+    };
+
+    constexpr OwnLookWater kOwnLookWater[]{
+        { 0x051353, "Skyrim.esm" },
+        { 0x014B86, "Dawnguard.esm" },
+        { 0x014B88, "Dawnguard.esm" },
+        { 0x01DFF1, "Dragonborn.esm" },
+        { 0x02ADEC, "Dragonborn.esm" },
+        { 0x03731A, "Dragonborn.esm" },
+    };
+
+    std::vector<const RE::TESWaterForm*>                  ownLookTypes;
+    std::unordered_map<const RE::BSShaderMaterial*, bool> ownLookMaterials;
+    std::size_t                                           ownLookObjectCount{ 0 };
+
+    void FindOwnLookTypes()
+    {
+        auto* dataHandler = RE::TESDataHandler::GetSingleton();
+        if (!dataHandler) {
+            return;
+        }
+        for (const auto& [localID, file] : kOwnLookWater) {
+            if (const auto* type = dataHandler->LookupForm<RE::TESWaterForm>(localID, file)) {
+                ownLookTypes.push_back(type);
+            }
+        }
+        logger::info("Water settings: {} lava and Apocrypha water types keep their own depth, colors, transparency and sun glints.", ownLookTypes.size());
+    }
+
+    bool KeepsOwnLook(const RE::TESWaterForm* a_type)
+    {
+        return a_type && std::ranges::find(ownLookTypes, a_type) != ownLookTypes.end();
+    }
+
+    bool KeepsOwnLook(const RE::BSShaderMaterial* a_material)
+    {
+        auto* system = RE::TESWaterSystem::GetSingleton();
+        if (ownLookTypes.empty() || !a_material || !system) {
+            return false;
+        }
+        RE::BSSpinLockGuard guard(system->lock);
+        if (system->waterObjects.size() != ownLookObjectCount) {
+            ownLookMaterials.clear();
+            ownLookObjectCount = system->waterObjects.size();
+        }
+        if (const auto it = ownLookMaterials.find(a_material); it != ownLookMaterials.end()) {
+            return it->second;
+        }
+        bool keeps = false;
+        for (const auto& water : system->waterObjects) {
+            if (water && water->shape) {
+                const auto* property = water->shape->GetGeometryRuntimeData().shaderProperty.get();
+                if (property && property->material == a_material) {
+                    keeps = KeepsOwnLook(water->waterType);
+                    break;
+                }
+            }
+        }
+        ownLookMaterials.emplace(a_material, keeps);
+        return keeps;
+    }
+
     RE::BSWaterShaderMaterial* BuildOverrideMaterial(
         const RE::BSWaterShaderMaterial* a_source,
-        const SettingsSnapshot& a_settings)
+        const SettingsSnapshot& a_settings,
+        bool a_ownLook)
     {
         alignas(RE::BSWaterShaderMaterial) static thread_local std::byte scratch[sizeof(RE::BSWaterShaderMaterial)];
         std::memcpy(scratch, a_source, sizeof(RE::BSWaterShaderMaterial));
@@ -161,20 +231,22 @@ namespace
 
         const bool mapOpen = WaterShader::IsWorldMapOpen();
 
-        if (a_settings.fixDepthProperties && !mapOpen) {
+        if (a_settings.fixDepthProperties && !mapOpen && !a_ownLook) {
             waterMat->depthProperties.reflections = a_settings.depthReflections;
             waterMat->depthProperties.refraction = a_settings.depthRefraction;
             waterMat->depthProperties.normals = a_settings.depthNormals;
             waterMat->depthProperties.specularLighting = a_settings.depthSpecularLighting;
         }
 
-        if (HasTransparencyOverride(a_settings) && !mapOpen) {
+        if (HasTransparencyOverride(a_settings) && !mapOpen && !a_ownLook) {
             ApplyTransparency(waterMat, a_settings.waterTransparency);
         }
 
-        ApplyWaterColorOverrides(waterMat, a_source, a_settings);
+        if (!a_ownLook) {
+            ApplyWaterColorOverrides(waterMat, a_source, a_settings);
+        }
 
-        if (a_settings.removeSunGlints && !mapOpen) {
+        if (a_settings.removeSunGlints && !mapOpen && !a_ownLook) {
             waterMat->sunSparkleMagnitude = 0.0f;
         }
 
@@ -218,7 +290,7 @@ namespace
 
 bool WaterShader::IsMaterialOverrideActive(const SettingsSnapshot& a_settings)
 {
-    return a_settings.enabled && (
+    return a_settings.enabled && (!IsWorldMapOpen() || a_settings.worldMapFullShader) && (
         a_settings.hasCustomColors ||
         a_settings.fixDepthProperties ||
         a_settings.removeSunGlints ||
@@ -254,7 +326,7 @@ bool WaterShader::Hooked_SetupTechnique(RE::BSShader* a_shader, std::uint32_t a_
     std::uint32_t technique = a_technique;
 
     const auto& settings = Settings::GetFastSnapshot();
-    if (settings.enabled && settings.fullShaderDistantWater) {
+    if (settings.enabled && settings.fullShaderDistantWater && (!IsWorldMapOpen() || settings.worldMapFullShader)) {
         const auto* waterSystem = RE::TESWaterSystem::GetSingleton();
         if (!waterSystem || !waterSystem->playerUnderwater) {
             technique = UpgradeLodWaterTechnique(a_technique, !IsWorldMapOpen());
@@ -302,7 +374,7 @@ void WaterShader::Hooked_SetupMaterial(RE::BSShader* a_shader, const RE::BSShade
     if (a_material && a_material->GetType() == RE::BSShaderMaterial::Type::kWater) {
         currentSource = a_material;
         if (IsMaterialOverrideActive(settings)) {
-            originalSetupMaterial(a_shader, BuildOverrideMaterial(static_cast<const RE::BSWaterShaderMaterial*>(a_material), settings));
+            originalSetupMaterial(a_shader, BuildOverrideMaterial(static_cast<const RE::BSWaterShaderMaterial*>(a_material), settings, KeepsOwnLook(a_material)));
         } else {
             originalSetupMaterial(a_shader, a_material);
         }
@@ -331,9 +403,10 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
         if (originalSetupMaterial && a_pass->geometry) {
             const auto& settings = Settings::GetFastSnapshot();
             const bool  overrideActive = IsMaterialOverrideActive(settings);
-            const bool  matching = settings.enabled && settings.fullShaderDistantWater;
+            const bool  matching = settings.enabled && settings.fullShaderDistantWater && (!IsWorldMapOpen() || settings.worldMapFullShader);
 
             const RE::BSShaderMaterial* source = passMat;
+            bool                        ownLook = false;
             const bool distant = matching && IsLodWaterGeometry(a_pass->geometry);
             if (distant) {
                 if (const auto piece = LodWaterSplit::PieceFor(a_pass->geometry)) {
@@ -351,6 +424,7 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
                     if (auto* own = TypeMaterial::For(type)) {
                         source = own;
                         matchedMaterial = own;
+                        ownLook = KeepsOwnLook(type);
                     }
                 }
             } else if (matching && riverFlowStripped && std::abs(waterShaderProp->plane.normal.z - 1.0f) < 1e-3f) {
@@ -365,8 +439,11 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
 
             if ((overrideActive || matching) && source != currentSource) {
                 currentSource = source;
+                if (source == passMat) {
+                    ownLook = KeepsOwnLook(passMat);
+                }
                 const auto* water = static_cast<const RE::BSWaterShaderMaterial*>(source);
-                originalSetupMaterial(a_shader, overrideActive ? BuildOverrideMaterial(water, settings) : source);
+                originalSetupMaterial(a_shader, overrideActive ? BuildOverrideMaterial(water, settings, ownLook) : source);
                 rebuilt = true;
             }
         }
@@ -449,6 +526,7 @@ bool WaterShader::Initialize()
         if (auto* ui = RE::UI::GetSingleton()) {
             ui->AddEventSink<RE::MenuOpenCloseEvent>(WorldMapWatcher::GetSingleton());
         }
+        FindOwnLookTypes();
     }
 
     return hookInstalled.load();

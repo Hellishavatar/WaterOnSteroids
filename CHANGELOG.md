@@ -14,6 +14,12 @@
 - Fixed squares and seams in the world map's water. While the map is open, distant water uses the
   worldspace's default water type without refraction or depth, and only Full Shader for Distant
   Water and custom colors apply; the normal view is unchanged.
+- New settings for the world map: `bWorldMapFullShader` (on by default) keeps Full Shader for Distant
+  Water on the map, and `bWorldMapRealisticDistantWater` (off by default) keeps Realistic Distant
+  Water there. Both are set in the INI or the installer, not in the menu. With `bWorldMapFullShader`
+  off, the map skips all water effects, custom colors included.
+- Lava and Apocrypha water keep their own depth, colors, transparency and sun glints: the Water Depth,
+  custom color, transparency and Remove Sun Glints settings no longer change them.
 
 ## 1.5.0
 

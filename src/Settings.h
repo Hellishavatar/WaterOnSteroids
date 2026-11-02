@@ -14,6 +14,8 @@ struct SettingsSnapshot
 	bool disableRiverFlow{ true };
 	bool realisticDistantWater{ true };
 	bool removeSunGlints{ true };
+	bool worldMapFullShader{ true };
+	bool worldMapRealisticDistantWater{ false };
 
 	bool fixDepthProperties{ true };
 	float waterTransparency{ 10.0f };
@@ -62,6 +64,8 @@ public:
 		m_snapshot.disableRiverFlow = disableRiverFlow;
 		m_snapshot.realisticDistantWater = realisticDistantWater;
 		m_snapshot.removeSunGlints = removeSunGlints;
+		m_snapshot.worldMapFullShader = worldMapFullShader;
+		m_snapshot.worldMapRealisticDistantWater = worldMapRealisticDistantWater;
 		m_snapshot.fixDepthProperties = fixDepthProperties;
 		m_snapshot.waterTransparency = waterTransparency;
 		m_snapshot.depthReflections = depthReflections;
@@ -241,6 +245,10 @@ public:
 				realisticDistantWater = (val == "true" || val == "1");
 			} else if (key == "bRemoveSunGlints") {
 				removeSunGlints = (val == "true" || val == "1");
+			} else if (key == "bWorldMapFullShader") {
+				worldMapFullShader = (val == "true" || val == "1");
+			} else if (key == "bWorldMapRealisticDistantWater") {
+				worldMapRealisticDistantWater = (val == "true" || val == "1");
 			}
 			else if (key == "bLiveWaterLog") {
 				liveWaterLog = (val == "true" || val == "1");
@@ -329,6 +337,10 @@ public:
 		flag("bRealisticDistantWater", realisticDistantWater);
 		line("# Remove Sun Glints: removes the flashing sun specks on calm water.");
 		flag("bRemoveSunGlints", removeSunGlints);
+		line("# World Map Full Shader: the world map keeps Full Shader for Distant Water, with one water type and without refraction or depth; false skips all water effects there.");
+		flag("bWorldMapFullShader", worldMapFullShader);
+		line("# World Map Realistic Distant Water: the world map keeps Realistic Distant Water, so far map water keeps its full shading.");
+		flag("bWorldMapRealisticDistantWater", worldMapRealisticDistantWater);
 		line("");
 
 		line("[WaterDepth]");
@@ -383,6 +395,8 @@ public:
 	bool disableRiverFlow{ true };
 	bool realisticDistantWater{ true };
 	bool removeSunGlints{ true };
+	bool worldMapFullShader{ true };
+	bool worldMapRealisticDistantWater{ false };
 
 	bool fixDepthProperties{ true };
 	float waterTransparency{ 10.0f };
