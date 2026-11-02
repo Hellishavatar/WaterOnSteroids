@@ -197,7 +197,7 @@ namespace
             if (a_event && a_event->menuName == RE::MapMenu::MENU_NAME) {
                 WaterShader::SetWorldMapOpen(a_event->opening);
                 if (!a_event->opening) {
-                    logger::info("World map closed: {} distant water draws with Full Shader without refraction or depth, Realistic Distant Water, one water type and custom colors only.", worldMapDraws.exchange(0));
+                    logger::info("World map closed: {} distant water draws with Full Shader without refraction or depth, one water type and custom colors only.", worldMapDraws.exchange(0));
                 }
             }
             return RE::BSEventNotifyControl::kContinue;

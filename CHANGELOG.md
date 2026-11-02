@@ -13,7 +13,7 @@
   the same with ENB as without it again; set it false if ENB has `DisableDistantReflection=true`.
 - Fixed squares and seams in the world map's water. While the map is open, distant water uses the
   worldspace's default water type without refraction or depth, and only Full Shader for Distant
-  Water, Realistic Distant Water and custom colors apply; the normal view is unchanged.
+  Water and custom colors apply; the normal view is unchanged.
 
 ## 1.5.0
 

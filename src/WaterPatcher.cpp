@@ -80,7 +80,7 @@ namespace
 				!(Hook_UpdatePerFrameConstants::lastFlags & kFrameFlagFullWaterShading)) {
 				const auto& settings = Settings::GetFastSnapshot();
 				const auto* waterSystem = RE::TESWaterSystem::GetSingleton();
-				force = settings.enabled && settings.realisticDistantWater && !(waterSystem && waterSystem->playerUnderwater);
+				force = settings.enabled && settings.realisticDistantWater && !WaterShader::IsWorldMapOpen() && !(waterSystem && waterSystem->playerUnderwater);
 			}
 
 			if (force) {
