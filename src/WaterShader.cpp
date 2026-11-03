@@ -478,6 +478,19 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
         waterShaderProp->material = matchedMaterial;
     }
 
+    RE::BSWaterShaderMaterial* reflectionBorrower = nullptr;
+    RE::NiSourceTexture*       storedReflection = nullptr;
+    std::uint8_t               storedCubeSelector = 0;
+    if (textureProperty) {
+        reflectionBorrower = static_cast<RE::BSWaterShaderMaterial*>(matchedMaterial);
+        const auto* gameMaterial = static_cast<const RE::BSWaterShaderMaterial*>(storedMaterial);
+        RE::NiSourceTexture* reflection = gameMaterial->staticReflectionTexture.get();
+        std::memcpy(&storedReflection, &reflectionBorrower->staticReflectionTexture, sizeof(storedReflection));
+        std::memcpy(&reflectionBorrower->staticReflectionTexture, &reflection, sizeof(reflection));
+        storedCubeSelector = reflectionBorrower->unk17D;
+        reflectionBorrower->unk17D = gameMaterial->unk17D;
+    }
+
     static_assert(sizeof(RE::NiPointer<RE::NiSourceTexture>) == sizeof(RE::NiSourceTexture*));
     RE::NiPointer<RE::NiSourceTexture>* lentSlots[2]{};
     if (auto* lender = flowProperty ? flowProperty : textureProperty) {
@@ -501,6 +514,10 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
             RE::NiSourceTexture* none = nullptr;
             std::memcpy(slot, &none, sizeof(none));
         }
+    }
+    if (reflectionBorrower) {
+        std::memcpy(&reflectionBorrower->staticReflectionTexture, &storedReflection, sizeof(storedReflection));
+        reflectionBorrower->unk17D = storedCubeSelector;
     }
     if (textureProperty) {
         textureProperty->material = storedMaterial;

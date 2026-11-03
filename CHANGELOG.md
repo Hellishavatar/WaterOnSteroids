@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.1
+
+### Fixed
+
+- Fixed a light, glittering square in Apocrypha's distant ink sea on Skyrim 1.5.97 and 1.6.1170.
+  Distant water now uses the same reflection the game picks for that place, on every Skyrim
+  version.
+
 ## 1.6.0
 
 ### Changed

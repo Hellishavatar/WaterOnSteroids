@@ -9,6 +9,7 @@
 #include <atomic>
 #include <chrono>
 #include <cstddef>
+#include <cstring>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -87,6 +88,7 @@ namespace
 		if (!memory) {
 			return nullptr;
 		}
+		std::memset(memory, 0, sizeof(RE::BSWaterShaderMaterial));
 		auto* material = construct(static_cast<RE::BSWaterShaderMaterial*>(memory));
 		fill(a_type, material);
 
