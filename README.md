@@ -1,6 +1,6 @@
 # Water On Steroids
 
-An SKSE plugin that extends Skyrim's water rendering using the game's own shaders by swapping LOD 9 to LOD 9 at draw time
+An SKSE plugin that extends Skyrim's water rendering using the game's own shaders by swapping LOD 9 to LOD 0 at draw time
 
 Supports Skyrim SE and AE up to 1.7.104 
 
