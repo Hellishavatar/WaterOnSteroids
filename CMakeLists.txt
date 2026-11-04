@@ -6,7 +6,7 @@ if(PLUGIN_VERSION_PATCH STREQUAL "")
     set(PLUGIN_VERSION_PATCH 0)
 endif()
 
-set(PLUGIN_AUTHOR "Hellishavatar")
+set(PLUGIN_AUTHOR "Draugrath")
 set(PLUGIN_COPYRIGHT "Copyright © 2026 ${PLUGIN_AUTHOR}.")
 set(PLUGIN_DESCRIPTION "Water On Steroids for Skyrim SE and AE.")
 
