@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.2
+
+### Fixed
+
+- Fixed the flickering dark patches on far water with Realistic Distant Water on: screen-space
+  reflections fade out again with distance to the water (gone at 8,192 units), found from the
+  cells' water heights, without patching shaders.
+
 ## 1.6.1
 
 ### Added
@@ -11,9 +19,6 @@
 
 ### Fixed
 
-- Fixed the flickering dark patches on far water with Realistic Distant Water on: screen-space
-  reflections fade out again with distance to the water (gone at 8,192 units), found from the
-  cells' water heights, without patching shaders.
 - Fixed a light, glittering square in Apocrypha's distant ink sea on Skyrim 1.5.97 and 1.6.1170.
   Distant water now uses the same reflection the game picks for that place, on every Skyrim
   version.
