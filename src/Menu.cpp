@@ -515,6 +515,33 @@ namespace Menu
 		};
 	}
 
+	namespace
+	{
+		RECT s_savedClip{};
+		bool s_clipSaved{ false };
+
+		void ReleaseCursorClip()
+		{
+			RECT clip{};
+			s_clipSaved = ::GetClipCursor(&clip) && (clip.left > GetSystemMetrics(SM_XVIRTUALSCREEN) ||
+				clip.top > GetSystemMetrics(SM_YVIRTUALSCREEN) ||
+				clip.right < GetSystemMetrics(SM_XVIRTUALSCREEN) + GetSystemMetrics(SM_CXVIRTUALSCREEN) ||
+				clip.bottom < GetSystemMetrics(SM_YVIRTUALSCREEN) + GetSystemMetrics(SM_CYVIRTUALSCREEN));
+			if (s_clipSaved) {
+				s_savedClip = clip;
+			}
+			::ClipCursor(nullptr);
+		}
+
+		void RestoreCursorClip()
+		{
+			if (s_clipSaved) {
+				::ClipCursor(&s_savedClip);
+				s_clipSaved = false;
+			}
+		}
+	}
+
 	bool IsOpen()
 	{
 		return s_open.load();
@@ -543,7 +570,9 @@ namespace Menu
 		}
 
 		if (a_open) {
-			::ClipCursor(nullptr);
+			ReleaseCursorClip();
+		} else {
+			RestoreCursorClip();
 		}
 
 		if (s_initialized) {
@@ -554,7 +583,7 @@ namespace Menu
 
 	void ForceUnlockControls()
 	{
-		s_open.store(false);
+		const bool wasOpen = s_open.exchange(false);
 		UnlockControls();
 
 		auto menuCursor = RE::MenuCursor::GetSingleton();
@@ -562,7 +591,9 @@ namespace Menu
 			menuCursor->SetCursorVisibility(false);
 		}
 
-		::ClipCursor(nullptr);
+		if (wasOpen) {
+			RestoreCursorClip();
+		}
 
 		if (s_initialized) {
 			ImGui::GetIO().MouseDrawCursor = false;
