@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.3
+
+### Fixed
+
+- Fixed SSE Display Tweaks' LockCursor stopping after a save was loaded, which let the cursor and the mouse
+  wheel reach windows on other monitors. The in-game menu now keeps the cursor lock of other mods: it is
+  released while the menu is open and restored when it closes.
+
 ## 1.6.2
 
 ### Fixed
