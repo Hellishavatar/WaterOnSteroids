@@ -2,6 +2,7 @@
 #include "CellWaterMap.h"
 #include "LodWaterSplit.h"
 #include "Settings.h"
+#include "SsrFade.h"
 #include "TypeMaterial.h"
 #include "WaterWatch.h"
 
@@ -9,10 +10,15 @@
 #include <RE/B/BSShaderProperty.h>
 #include <RE/B/BSWaterShaderMaterial.h>
 #include <RE/B/BSWaterShaderProperty.h>
+#include <RE/M/Main.h>
 #include <RE/M/MapMenu.h>
+#include <RE/N/NiCamera.h>
 #include <RE/T/TES.h>
 #include <RE/T/TESDataHandler.h>
 #include <RE/T/TESWaterSystem.h>
+
+#include <d3d11.h>
+#include <wrl/client.h>
 
 #include <algorithm>
 #include <cmath>
@@ -30,6 +36,90 @@ namespace
     thread_local std::uint32_t loadedTechnique = 0;
     thread_local bool distantWaterUpgraded = false;
     thread_local bool riverFlowStripped = false;
+
+    float* ScreenReflectionSetting()
+    {
+        static float* const value = [] {
+            RE::Setting* setting = nullptr;
+            if (auto* prefs = RE::INIPrefSettingCollection::GetSingleton()) {
+                setting = prefs->GetSetting("fWaterSSRIntensity:Display");
+            }
+            if (!setting) {
+                if (auto* ini = RE::INISettingCollection::GetSingleton()) {
+                    setting = ini->GetSetting("fWaterSSRIntensity:Display");
+                }
+            }
+            return setting ? &setting->data.f : nullptr;
+        }();
+        return value;
+    }
+
+    void ApplyScreenReflectionRemoval()
+    {
+        static bool  zeroed = false;
+        static float stored = 0.0f;
+        auto*        value = ScreenReflectionSetting();
+        const auto&  settings = Settings::GetFastSnapshot();
+        const bool   wanted = settings.enabled && settings.removeScreenSpaceReflections;
+        if (!value || wanted == zeroed) {
+            return;
+        }
+        if (wanted) {
+            stored = *value;
+            *value = 0.0f;
+        } else {
+            *value = stored;
+        }
+        zeroed = wanted;
+    }
+
+    struct BlackCubemap
+    {
+        Microsoft::WRL::ComPtr<ID3D11Texture2D>          texture;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> view;
+        RE::BSGraphics::Texture                          rendererTexture{};
+        alignas(16) std::byte                            sourceTexture[0x60]{};
+        bool                                             tried{ false };
+    };
+
+    void* BlackCubemapTexture()
+    {
+        static BlackCubemap cube;
+        if (!cube.tried) {
+            cube.tried = true;
+            auto* renderer = RE::BSGraphics::Renderer::GetSingleton();
+            auto* device = renderer ? reinterpret_cast<ID3D11Device*>(renderer->GetRuntimeData().forwarder) : nullptr;
+            const std::uint32_t        black = 0;
+            D3D11_SUBRESOURCE_DATA     faces[6]{};
+            for (auto& face : faces) {
+                face.pSysMem = &black;
+                face.SysMemPitch = 4;
+            }
+            D3D11_TEXTURE2D_DESC desc{};
+            desc.Width = desc.Height = 1;
+            desc.MipLevels = 1;
+            desc.ArraySize = 6;
+            desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            desc.SampleDesc.Count = 1;
+            desc.Usage = D3D11_USAGE_IMMUTABLE;
+            desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+            desc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+            D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc{};
+            viewDesc.Format = desc.Format;
+            viewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+            viewDesc.TextureCube.MipLevels = 1;
+            if (device && SUCCEEDED(device->CreateTexture2D(&desc, faces, cube.texture.GetAddressOf())) &&
+                SUCCEEDED(device->CreateShaderResourceView(cube.texture.Get(), &viewDesc, cube.view.GetAddressOf()))) {
+                cube.rendererTexture.texture = reinterpret_cast<REX::W32::ID3D11Resource*>(cube.texture.Get());
+                cube.rendererTexture.resourceView = reinterpret_cast<REX::W32::ID3D11ShaderResourceView*>(cube.view.Get());
+                cube.rendererTexture.width = cube.rendererTexture.height = 1;
+                cube.rendererTexture.mips = 1;
+                auto* pointer = &cube.rendererTexture;
+                std::memcpy(cube.sourceTexture + 0x48, &pointer, sizeof(pointer));
+            }
+        }
+        return cube.view ? cube.sourceTexture : nullptr;
+    }
 
     bool IsLodWaterGeometry(const RE::BSGeometry* a_geometry)
     {
@@ -368,6 +458,7 @@ void WaterShader::Hooked_SetupMaterial(RE::BSShader* a_shader, const RE::BSShade
         WaterWatch::NoteSetupMaterial(a_material);
     }
 
+    ApplyScreenReflectionRemoval();
     currentSource = nullptr;
 
     const auto& settings = Settings::GetFastSnapshot();
@@ -507,7 +598,38 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
         }
     }
 
+    if (waterShaderProp && a_pass && loadedTechnique >= kWaterTechniqueBase && loadedTechnique < kWaterTechniqueEnd &&
+        (((loadedTechnique - kWaterTechniqueBase) >> kTechniqueShift) & kTechniqueMask) == kTechniqueMain && !IsWorldMapOpen()) {
+        const auto& settings = Settings::GetFastSnapshot();
+        const auto* waterSystem = RE::TESWaterSystem::GetSingleton();
+        if (settings.enabled && settings.realisticDistantWater && !settings.removeScreenSpaceReflections && !(waterSystem && waterSystem->playerUnderwater)) {
+            SsrFade::Apply(waterShaderProp->plane.constant);
+            if (const auto* camera = RE::Main::WorldRootCamera(); camera && a_pass->geometry && std::abs(waterShaderProp->plane.normal.z - 1.0f) < 1e-3f) {
+                const auto& bound = a_pass->geometry->worldBound;
+                SsrFade::NoteWater(camera->world.translate.GetDistance(bound.center) - bound.radius, waterShaderProp->plane.constant);
+            }
+        }
+    }
+
+    RE::BSWaterShaderMaterial* cubeMaterial = nullptr;
+    void*                      storedCube = nullptr;
+    const auto& cubeSettings = Settings::GetFastSnapshot();
+    if (cubeSettings.enabled && cubeSettings.removeCubemapReflections && waterShaderProp && waterShaderProp->material) {
+        auto* water = static_cast<RE::BSWaterShaderMaterial*>(waterShaderProp->material);
+        if (water->unk17D == 0) {
+            if (void* black = BlackCubemapTexture()) {
+                cubeMaterial = water;
+                std::memcpy(&storedCube, &water->staticReflectionTexture, sizeof(void*));
+                std::memcpy(&water->staticReflectionTexture, &black, sizeof(void*));
+            }
+        }
+    }
+
     originalSetupGeometry(a_shader, a_pass, a_flags);
+
+    if (cubeMaterial) {
+        std::memcpy(&cubeMaterial->staticReflectionTexture, &storedCube, sizeof(void*));
+    }
 
     for (auto* slot : lentSlots) {
         if (slot) {

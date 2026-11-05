@@ -1,6 +1,7 @@
 #include "Menu.h"
 #include "PCH.h"
 #include "Settings.h"
+#include "SsrFade.h"
 #include "WaterPatcher.h"
 #include "WaterShader.h"
 #include "WaterWatch.h"
@@ -356,6 +357,7 @@ namespace Menu
 			static HRESULT WINAPI thunk(IDXGISwapChain* a_swapChain, UINT a_syncInterval, UINT a_flags)
 			{
 				WaterWatch::OnFrame();
+				SsrFade::NewFrame();
 				RenderFrame(a_swapChain);
 				return func(a_swapChain, a_syncInterval, a_flags);
 			}
@@ -807,6 +809,8 @@ namespace Menu
 		bool disableRiverFlow = true;
 		bool realisticDistantWater = true;
 		bool removeSunGlints = true;
+		bool removeScreenSpaceReflections = false;
+		bool removeCubemapReflections = false;
 	};
 	static SavedEngineFeatures s_savedEngineFeatures{};
 
@@ -856,6 +860,8 @@ namespace Menu
 		settings.disableRiverFlow = true;
 		settings.realisticDistantWater = true;
 		settings.removeSunGlints = true;
+		settings.removeScreenSpaceReflections = false;
+		settings.removeCubemapReflections = false;
 		settings.fixDepthProperties = true;
 		settings.waterTransparency = 10.0f;
 		settings.depthReflections = 1.0f;
@@ -1281,6 +1287,21 @@ namespace Menu
 						"Turn off to keep river flow, with the seam.");
 				}
 
+				if (featureTable) ImGui::TableNextColumn();
+				ImGui::Checkbox("Remove Screen-Space Reflections", &settings.removeScreenSpaceReflections);
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip(
+						"Water reflects no screen-space reflections, only the sky (cubemap).\n"
+						"Removes their flicker on far water.");
+				}
+
+				if (featureTable) ImGui::TableNextColumn();
+				ImGui::Checkbox("Remove Cubemap Reflections", &settings.removeCubemapReflections);
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip(
+						"Water reflects no sky (cubemap), only screen-space reflections.");
+				}
+
 				if (featureTable) {
 					ImGui::EndTable();
 				}
@@ -1288,13 +1309,16 @@ namespace Menu
 				if (headerClicked) {
 					if (settings.clearUnderwater || settings.fullShaderDistantWater ||
 						settings.disableRiverFlow ||
-						settings.realisticDistantWater || settings.removeSunGlints) {
+						settings.realisticDistantWater || settings.removeSunGlints ||
+						settings.removeScreenSpaceReflections || settings.removeCubemapReflections) {
 						s_savedEngineFeatures = {
 							settings.clearUnderwater,
 							settings.fullShaderDistantWater,
 							settings.disableRiverFlow,
 							settings.realisticDistantWater,
-							settings.removeSunGlints
+							settings.removeSunGlints,
+							settings.removeScreenSpaceReflections,
+							settings.removeCubemapReflections
 						};
 					}
 					settings.clearUnderwater = false;
@@ -1302,6 +1326,8 @@ namespace Menu
 					settings.disableRiverFlow = false;
 					settings.realisticDistantWater = false;
 					settings.removeSunGlints = false;
+					settings.removeScreenSpaceReflections = false;
+					settings.removeCubemapReflections = false;
 					s_engineFeaturesCollapsed = true;
 					fullPatchChanged = true;
 				}
@@ -1311,6 +1337,8 @@ namespace Menu
 				settings.disableRiverFlow = s_savedEngineFeatures.disableRiverFlow;
 				settings.realisticDistantWater = s_savedEngineFeatures.realisticDistantWater;
 				settings.removeSunGlints = s_savedEngineFeatures.removeSunGlints;
+				settings.removeScreenSpaceReflections = s_savedEngineFeatures.removeScreenSpaceReflections;
+				settings.removeCubemapReflections = s_savedEngineFeatures.removeCubemapReflections;
 				s_engineFeaturesCollapsed = false;
 				fullPatchChanged = true;
 			}

@@ -14,6 +14,8 @@ struct SettingsSnapshot
 	bool disableRiverFlow{ true };
 	bool realisticDistantWater{ true };
 	bool removeSunGlints{ true };
+	bool removeScreenSpaceReflections{ false };
+	bool removeCubemapReflections{ false };
 	bool worldMapFullShader{ true };
 	bool worldMapRealisticDistantWater{ false };
 
@@ -64,6 +66,8 @@ public:
 		m_snapshot.disableRiverFlow = disableRiverFlow;
 		m_snapshot.realisticDistantWater = realisticDistantWater;
 		m_snapshot.removeSunGlints = removeSunGlints;
+		m_snapshot.removeScreenSpaceReflections = removeScreenSpaceReflections;
+		m_snapshot.removeCubemapReflections = removeCubemapReflections;
 		m_snapshot.worldMapFullShader = worldMapFullShader;
 		m_snapshot.worldMapRealisticDistantWater = worldMapRealisticDistantWater;
 		m_snapshot.fixDepthProperties = fixDepthProperties;
@@ -245,6 +249,10 @@ public:
 				realisticDistantWater = (val == "true" || val == "1");
 			} else if (key == "bRemoveSunGlints") {
 				removeSunGlints = (val == "true" || val == "1");
+			} else if (key == "bRemoveScreenSpaceReflections") {
+				removeScreenSpaceReflections = (val == "true" || val == "1");
+			} else if (key == "bRemoveCubemapReflections") {
+				removeCubemapReflections = (val == "true" || val == "1");
 			} else if (key == "bWorldMapFullShader") {
 				worldMapFullShader = (val == "true" || val == "1");
 			} else if (key == "bWorldMapRealisticDistantWater") {
@@ -337,6 +345,10 @@ public:
 		flag("bRealisticDistantWater", realisticDistantWater);
 		line("# Remove Sun Glints: removes the flashing sun specks on calm water.");
 		flag("bRemoveSunGlints", removeSunGlints);
+		line("# Remove Screen-Space Reflections: water reflects no screen-space reflections, only the sky (cubemap).");
+		flag("bRemoveScreenSpaceReflections", removeScreenSpaceReflections);
+		line("# Remove Cubemap Reflections: water reflects no sky (cubemap), only screen-space reflections.");
+		flag("bRemoveCubemapReflections", removeCubemapReflections);
 		line("# World Map Full Shader: the world map keeps Full Shader for Distant Water, with one water type and without refraction or depth; false skips all water effects there.");
 		flag("bWorldMapFullShader", worldMapFullShader);
 		line("# World Map Realistic Distant Water: the world map keeps Realistic Distant Water, so far map water keeps its full shading.");
@@ -395,6 +407,8 @@ public:
 	bool disableRiverFlow{ true };
 	bool realisticDistantWater{ true };
 	bool removeSunGlints{ true };
+	bool removeScreenSpaceReflections{ false };
+	bool removeCubemapReflections{ false };
 	bool worldMapFullShader{ true };
 	bool worldMapRealisticDistantWater{ false };
 

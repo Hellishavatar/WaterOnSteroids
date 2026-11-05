@@ -169,6 +169,8 @@ set(SOURCES
     "${CMAKE_SOURCE_DIR}/src/Plugin.cpp"
     "${CMAKE_SOURCE_DIR}/src/RenderPassFinder.h"
     "${CMAKE_SOURCE_DIR}/src/Settings.h"
+    "${CMAKE_SOURCE_DIR}/src/SsrFade.cpp"
+    "${CMAKE_SOURCE_DIR}/src/SsrFade.h"
     "${CMAKE_SOURCE_DIR}/src/WaterPatcher.cpp"
     "${CMAKE_SOURCE_DIR}/src/WaterPatcher.h"
     "${CMAKE_SOURCE_DIR}/src/Menu.cpp"

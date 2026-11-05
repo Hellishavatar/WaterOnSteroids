@@ -2,8 +2,18 @@
 
 ## 1.6.1
 
+### Added
+
+- Remove Screen-Space Reflections (`bRemoveScreenSpaceReflections`, off by default): water reflects only
+  the sky (cubemap), which also removes the flicker of screen-space reflections on far water.
+- Remove Cubemap Reflections (`bRemoveCubemapReflections`, off by default): water reflects only
+  screen-space reflections, with no sky (cubemap).
+
 ### Fixed
 
+- Fixed the flickering dark patches on far water with Realistic Distant Water on: screen-space
+  reflections fade out again with distance to the water (gone at 8,192 units), found from the
+  cells' water heights, without patching shaders.
 - Fixed a light, glittering square in Apocrypha's distant ink sea on Skyrim 1.5.97 and 1.6.1170.
   Distant water now uses the same reflection the game picks for that place, on every Skyrim
   version.
