@@ -11,12 +11,10 @@
 #include <d3dcompiler.h>
 #include <wrl/client.h>
 
-#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cmath>
 #include <cstring>
-#include <span>
 
 #pragma comment(lib, "d3dcompiler")
 
@@ -89,14 +87,7 @@ float2 MapDistance(float3 o, float3 d)
 	return float2(1e9, 0);
 }
 
-struct Output
-{
-	float4 first : SV_Target0;
-	float4 second : SV_Target1;
-	float4 third : SV_Target2;
-};
-
-Output PS(float4 position : SV_Position, float2 uv : TEXCOORD0)
+float4 PS(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Target
 {
 	float3 ray = forward.xyz + lerp(forward.w, rightAxis.w, uv.x) * rightAxis.xyz + lerp(upAxis.w, -upAxis.w, uv.y) * upAxis.xyz;
 	float  distance;
@@ -118,9 +109,7 @@ Output PS(float4 position : SV_Position, float2 uv : TEXCOORD0)
 		}
 		distance *= length(ray);
 	}
-	Output output;
-	output.first = output.second = output.third = float4(0, 0, 0, saturate((distance - 8192) / (falloff - 8192)));
-	return output;
+	return float4(0, 0, 0, saturate((distance - 8192) / (falloff - 8192)));
 }
 )";
 
@@ -153,7 +142,6 @@ Output PS(float4 position : SV_Position, float2 uv : TEXCOORD0)
 	};
 
 	Resources         resources;
-	bool              drawsLogged{ false };
 	std::atomic<bool> doneThisFrame{ false };
 
 	constexpr float kNoWater = 1.0e9f;
@@ -281,64 +269,20 @@ Output PS(float4 position : SV_Position, float2 uv : TEXCOORD0)
 		       SUCCEEDED(a_device->CreateShaderResourceView(resources.heights.Get(), nullptr, resources.heightsView.GetAddressOf()));
 	}
 
-	struct FadeTarget
+	void FadeTarget(ID3D11DeviceContext* a_context, ID3D11RenderTargetView* a_target)
 	{
-		ID3D11RenderTargetView* view{ nullptr };
-		ComPtr<ID3D11Resource>  resource;
-		D3D11_TEXTURE2D_DESC    desc{};
-		bool                    done{ false };
-	};
-
-	void FadeTargets(ID3D11DeviceContext* a_context, std::span<ID3D11RenderTargetView* const, 3> a_views)
-	{
-		std::array<FadeTarget, 3> fades;
-		std::size_t               count = 0;
-		for (auto* view : a_views) {
-			if (!view) {
-				continue;
-			}
-			auto& fade = fades[count];
-			view->GetResource(fade.resource.GetAddressOf());
-			ComPtr<ID3D11Texture2D> texture;
-			if (FAILED(fade.resource.As(&texture))) {
-				continue;
-			}
-			texture->GetDesc(&fade.desc);
-			fade.view = view;
-			++count;
+		ComPtr<ID3D11Resource> resource;
+		a_target->GetResource(resource.GetAddressOf());
+		ComPtr<ID3D11Texture2D> texture;
+		if (FAILED(resource.As(&texture))) {
+			return;
 		}
-
-		std::uint32_t draws = 0;
-		for (std::size_t i = 0; i < count; ++i) {
-			if (fades[i].done) {
-				continue;
-			}
-			const auto&             first = fades[i].desc;
-			ID3D11RenderTargetView* group[3]{};
-			ID3D11Resource*         groupResources[3]{};
-			UINT                    groupCount = 0;
-			for (std::size_t j = i; j < count; ++j) {
-				auto&      fade = fades[j];
-				const auto sameResource = std::find(groupResources, groupResources + groupCount, fade.resource.Get()) != groupResources + groupCount;
-				if (fade.done || sameResource || fade.desc.Width != first.Width || fade.desc.Height != first.Height ||
-					fade.desc.SampleDesc.Count != first.SampleDesc.Count || fade.desc.SampleDesc.Quality != first.SampleDesc.Quality) {
-					continue;
-				}
-				group[groupCount] = fade.view;
-				groupResources[groupCount] = fade.resource.Get();
-				++groupCount;
-				fade.done = true;
-			}
-			const D3D11_VIEWPORT viewport{ 0.0f, 0.0f, static_cast<float>(first.Width), static_cast<float>(first.Height), 0.0f, 1.0f };
-			a_context->RSSetViewports(1, &viewport);
-			a_context->OMSetRenderTargets(groupCount, group, nullptr);
-			a_context->Draw(3, 0);
-			++draws;
-		}
-		if (!drawsLogged && count > 0) {
-			drawsLogged = true;
-			logger::info("Realistic Distant Water: the reflection fade draws {} time(s) for {} reflection image(s).", draws, count);
-		}
+		D3D11_TEXTURE2D_DESC desc{};
+		texture->GetDesc(&desc);
+		const D3D11_VIEWPORT viewport{ 0.0f, 0.0f, static_cast<float>(desc.Width), static_cast<float>(desc.Height), 0.0f, 1.0f };
+		a_context->RSSetViewports(1, &viewport);
+		a_context->OMSetRenderTargets(1, &a_target, nullptr);
+		a_context->Draw(3, 0);
 	}
 }
 
@@ -465,8 +409,15 @@ void SsrFade::Apply(float a_waterHeight, float a_falloff)
 	context->PSSetShaderResources(0, 2, inputs);
 	context->PSSetConstantBuffers(0, 1, resources.constants.GetAddressOf());
 
-	const std::array<ID3D11RenderTargetView*, 3> fadeViews{ reflections, rawReflections, blurredReflections };
-	FadeTargets(context, fadeViews);
+	if (reflections) {
+		FadeTarget(context, reflections);
+	}
+	if (rawReflections) {
+		FadeTarget(context, rawReflections);
+	}
+	if (blurredReflections) {
+		FadeTarget(context, blurredReflections);
+	}
 
 	ID3D11ShaderResourceView* noTextures[2]{};
 	context->PSSetShaderResources(0, 2, noTextures);
