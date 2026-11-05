@@ -11,10 +11,12 @@
 #include <d3dcompiler.h>
 #include <wrl/client.h>
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cmath>
 #include <cstring>
+#include <span>
 
 #pragma comment(lib, "d3dcompiler")
 
@@ -38,9 +40,10 @@ cbuffer Fade : register(b0)
 	float4 upAxis;
 	float4 eye;
 	float4 window;
+	float4 ramp;
 };
 Texture2D<float> Depth : register(t0);
-Texture2D<float> Heights : register(t1);
+Texture2D<float2> Heights : register(t1);
 
 void VS(uint id : SV_VertexID, out float4 position : SV_Position, out float2 uv : TEXCOORD0)
 {
@@ -48,7 +51,7 @@ void VS(uint id : SV_VertexID, out float4 position : SV_Position, out float2 uv 
 	position = float4(uv * float2(2, -2) + float2(-1, 1), 0, 1);
 }
 
-float MapDistance(float3 o, float3 d)
+float2 MapDistance(float3 o, float3 d)
 {
 	float  cellSize = window.w;
 	float2 local = (o.xy - window.xy) / cellSize;
@@ -59,18 +62,19 @@ float MapDistance(float3 o, float3 d)
 	float2 next = float2(d.x >= 0 ? cell.x + 1 - local.x : local.x - cell.x, d.y >= 0 ? cell.y + 1 - local.y : local.y - cell.y) * delta;
 	float  start = 0;
 	[loop] for (int i = 0; i < 32; ++i) {
-		if (any(cell < 0) || any(cell >= (int)window.z) || start > 9000) {
+		if (any(cell < 0) || any(cell >= (int)window.z) || start > 8192) {
 			break;
 		}
 		float end = min(next.x, next.y);
-		float h = Heights.Load(int3(cell, 0));
+		float2 water = Heights.Load(int3(cell, 0));
+		float  h = water.x;
 		if (o.z + d.z * start <= h) {
-			return start;
+			return float2(start, water.y);
 		}
 		if (d.z < 0) {
 			float hit = (h - o.z) / d.z;
 			if (hit <= end) {
-				return max(hit, start);
+				return float2(max(hit, start), water.y);
 			}
 		}
 		if (next.x < next.y) {
@@ -82,15 +86,28 @@ float MapDistance(float3 o, float3 d)
 		}
 		start = end;
 	}
-	return 1e9;
+	return float2(1e9, 0);
 }
 
-float4 PS(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Target
+struct Output
+{
+	float4 first : SV_Target0;
+	float4 second : SV_Target1;
+	float4 third : SV_Target2;
+};
+
+Output PS(float4 position : SV_Position, float2 uv : TEXCOORD0)
 {
 	float3 ray = forward.xyz + lerp(forward.w, rightAxis.w, uv.x) * rightAxis.xyz + lerp(upAxis.w, -upAxis.w, uv.y) * upAxis.xyz;
 	float  distance;
+	float  falloff = ramp.x;
 	if (eye.w > 0) {
-		distance = MapDistance(eye.xyz, normalize(ray));
+		float2 hit = float2(1e9, 0);
+		[branch] if (ray.z < 0 || eye.z <= height) {
+			hit = MapDistance(eye.xyz, normalize(ray));
+		}
+		distance = hit.x;
+		falloff = hit.y;
 	} else {
 		uint width, h;
 		Depth.GetDimensions(width, h);
@@ -101,7 +118,9 @@ float4 PS(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Target
 		}
 		distance *= length(ray);
 	}
-	return float4(0, 0, 0, saturate((8192 - distance) / 4185));
+	Output output;
+	output.first = output.second = output.third = float4(0, 0, 0, saturate((distance - 8192) / (falloff - 8192)));
+	return output;
 }
 )";
 
@@ -116,6 +135,7 @@ float4 PS(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Target
 		float upAxis[4];
 		float eye[4];
 		float window[4];
+		float ramp[4];
 	};
 
 	struct Resources
@@ -133,9 +153,12 @@ float4 PS(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Target
 	};
 
 	Resources         resources;
+	bool              drawsLogged{ false };
 	std::atomic<bool> doneThisFrame{ false };
 
 	constexpr float kNoWater = 1.0e9f;
+	constexpr float kDefaultFalloff = 4007.0f;
+
 	float           nearestDistance{ kNoWater };
 	float           pendingHeight{ 0.0f };
 	float           nearestHeight{ 0.0f };
@@ -146,6 +169,7 @@ float4 PS(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Target
 	std::int32_t       mapY{ 0 };
 	bool               mapValid{ false };
 	bool               mapLogged{ false };
+	float              highestWater{ kNoWaterHeight };
 
 	bool UpdateMap(ID3D11DeviceContext* a_context, RE::TESWorldSpace* a_world, std::int32_t a_originX, std::int32_t a_originY)
 	{
@@ -157,13 +181,19 @@ float4 PS(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Target
 			mapValid = false;
 			return false;
 		}
-		std::array<float, kMapCells * kMapCells> values{};
+		std::array<float, kMapCells * kMapCells * 2> values{};
 		std::int32_t                             withWater = 0;
+		float                                    highest = kNoWaterHeight;
 		for (std::int32_t j = 0; j < kMapCells; ++j) {
 			for (std::int32_t i = 0; i < kMapCells; ++i) {
 				const auto cell = cells.At(a_originX + i, a_originY + j);
-				values[static_cast<std::size_t>(j) * kMapCells + i] = cell.water ? cell.height : kNoWaterHeight;
+				const auto index = (static_cast<std::size_t>(j) * kMapCells + i) * 2;
+				values[index] = cell.water ? cell.height : kNoWaterHeight;
+				values[index + 1] = cell.type ? cell.type->data.noiseFalloff : kDefaultFalloff;
 				withWater += cell.water ? 1 : 0;
+				if (cell.water) {
+					highest = (std::max)(highest, cell.height);
+				}
 			}
 		}
 		D3D11_MAPPED_SUBRESOURCE mapped{};
@@ -172,9 +202,10 @@ float4 PS(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Target
 			return false;
 		}
 		for (std::int32_t j = 0; j < kMapCells; ++j) {
-			std::memcpy(static_cast<std::byte*>(mapped.pData) + static_cast<std::size_t>(j) * mapped.RowPitch, values.data() + static_cast<std::size_t>(j) * kMapCells, sizeof(float) * kMapCells);
+			std::memcpy(static_cast<std::byte*>(mapped.pData) + static_cast<std::size_t>(j) * mapped.RowPitch, values.data() + static_cast<std::size_t>(j) * kMapCells * 2, sizeof(float) * kMapCells * 2);
 		}
 		a_context->Unmap(resources.heights.Get(), 0);
+		highestWater = highest;
 		mapWorld = a_world;
 		mapX = a_originX;
 		mapY = a_originY;
@@ -234,7 +265,7 @@ float4 PS(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Target
 		heights.Width = heights.Height = kMapCells;
 		heights.MipLevels = 1;
 		heights.ArraySize = 1;
-		heights.Format = DXGI_FORMAT_R32_FLOAT;
+		heights.Format = DXGI_FORMAT_R32G32_FLOAT;
 		heights.SampleDesc.Count = 1;
 		heights.Usage = D3D11_USAGE_DYNAMIC;
 		heights.BindFlags = D3D11_BIND_SHADER_RESOURCE;
@@ -250,20 +281,64 @@ float4 PS(float4 position : SV_Position, float2 uv : TEXCOORD0) : SV_Target
 		       SUCCEEDED(a_device->CreateShaderResourceView(resources.heights.Get(), nullptr, resources.heightsView.GetAddressOf()));
 	}
 
-	void FadeTarget(ID3D11DeviceContext* a_context, ID3D11RenderTargetView* a_target)
+	struct FadeTarget
 	{
-		ComPtr<ID3D11Resource> resource;
-		a_target->GetResource(resource.GetAddressOf());
-		ComPtr<ID3D11Texture2D> texture;
-		if (FAILED(resource.As(&texture))) {
-			return;
+		ID3D11RenderTargetView* view{ nullptr };
+		ComPtr<ID3D11Resource>  resource;
+		D3D11_TEXTURE2D_DESC    desc{};
+		bool                    done{ false };
+	};
+
+	void FadeTargets(ID3D11DeviceContext* a_context, std::span<ID3D11RenderTargetView* const, 3> a_views)
+	{
+		std::array<FadeTarget, 3> fades;
+		std::size_t               count = 0;
+		for (auto* view : a_views) {
+			if (!view) {
+				continue;
+			}
+			auto& fade = fades[count];
+			view->GetResource(fade.resource.GetAddressOf());
+			ComPtr<ID3D11Texture2D> texture;
+			if (FAILED(fade.resource.As(&texture))) {
+				continue;
+			}
+			texture->GetDesc(&fade.desc);
+			fade.view = view;
+			++count;
 		}
-		D3D11_TEXTURE2D_DESC desc{};
-		texture->GetDesc(&desc);
-		const D3D11_VIEWPORT viewport{ 0.0f, 0.0f, static_cast<float>(desc.Width), static_cast<float>(desc.Height), 0.0f, 1.0f };
-		a_context->RSSetViewports(1, &viewport);
-		a_context->OMSetRenderTargets(1, &a_target, nullptr);
-		a_context->Draw(3, 0);
+
+		std::uint32_t draws = 0;
+		for (std::size_t i = 0; i < count; ++i) {
+			if (fades[i].done) {
+				continue;
+			}
+			const auto&             first = fades[i].desc;
+			ID3D11RenderTargetView* group[3]{};
+			ID3D11Resource*         groupResources[3]{};
+			UINT                    groupCount = 0;
+			for (std::size_t j = i; j < count; ++j) {
+				auto&      fade = fades[j];
+				const auto sameResource = std::find(groupResources, groupResources + groupCount, fade.resource.Get()) != groupResources + groupCount;
+				if (fade.done || sameResource || fade.desc.Width != first.Width || fade.desc.Height != first.Height ||
+					fade.desc.SampleDesc.Count != first.SampleDesc.Count || fade.desc.SampleDesc.Quality != first.SampleDesc.Quality) {
+					continue;
+				}
+				group[groupCount] = fade.view;
+				groupResources[groupCount] = fade.resource.Get();
+				++groupCount;
+				fade.done = true;
+			}
+			const D3D11_VIEWPORT viewport{ 0.0f, 0.0f, static_cast<float>(first.Width), static_cast<float>(first.Height), 0.0f, 1.0f };
+			a_context->RSSetViewports(1, &viewport);
+			a_context->OMSetRenderTargets(groupCount, group, nullptr);
+			a_context->Draw(3, 0);
+			++draws;
+		}
+		if (!drawsLogged && count > 0) {
+			drawsLogged = true;
+			logger::info("Realistic Distant Water: the reflection fade draws {} time(s) for {} reflection image(s).", draws, count);
+		}
 	}
 }
 
@@ -285,7 +360,7 @@ void SsrFade::NoteWater(float a_distance, float a_height)
 	}
 }
 
-void SsrFade::Apply(float a_waterHeight)
+void SsrFade::Apply(float a_waterHeight, float a_falloff)
 {
 	if (resources.failed || doneThisFrame.exchange(true, std::memory_order_relaxed)) {
 		return;
@@ -328,14 +403,15 @@ void SsrFade::Apply(float a_waterHeight)
 	}
 	const auto& rotate = camera->world.rotate;
 	const auto& eye = camera->world.translate;
-	const float height = eye.z - (hasNearest ? nearestHeight : a_waterHeight);
+	const float height = useMap ? highestWater : eye.z - (hasNearest ? nearestHeight : a_waterHeight);
 	const Constants constants{
 		frustum.fNear * frustum.fFar, frustum.fFar, frustum.fFar - frustum.fNear, height,
 		{ rotate.entry[0][0], rotate.entry[1][0], rotate.entry[2][0], frustum.fLeft },
 		{ rotate.entry[0][2], rotate.entry[1][2], rotate.entry[2][2], frustum.fRight },
 		{ rotate.entry[0][1], rotate.entry[1][1], rotate.entry[2][1], frustum.fTop },
 		{ eye.x, eye.y, eye.z, useMap ? 1.0f : 0.0f },
-		{ static_cast<float>(originX) * kCellSize, static_cast<float>(originY) * kCellSize, static_cast<float>(kMapCells), kCellSize }
+		{ static_cast<float>(originX) * kCellSize, static_cast<float>(originY) * kCellSize, static_cast<float>(kMapCells), kCellSize },
+		{ a_falloff, 0.0f, 0.0f, 0.0f }
 	};
 	std::memcpy(mapped.pData, &constants, sizeof(constants));
 	context->Unmap(resources.constants.Get(), 0);
@@ -389,15 +465,8 @@ void SsrFade::Apply(float a_waterHeight)
 	context->PSSetShaderResources(0, 2, inputs);
 	context->PSSetConstantBuffers(0, 1, resources.constants.GetAddressOf());
 
-	if (reflections) {
-		FadeTarget(context, reflections);
-	}
-	if (rawReflections) {
-		FadeTarget(context, rawReflections);
-	}
-	if (blurredReflections) {
-		FadeTarget(context, blurredReflections);
-	}
+	const std::array<ID3D11RenderTargetView*, 3> fadeViews{ reflections, rawReflections, blurredReflections };
+	FadeTargets(context, fadeViews);
 
 	ID3D11ShaderResourceView* noTextures[2]{};
 	context->PSSetShaderResources(0, 2, noTextures);

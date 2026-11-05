@@ -602,8 +602,11 @@ void WaterShader::Hooked_SetupGeometry(RE::BSShader* a_shader, RE::BSRenderPass*
         (((loadedTechnique - kWaterTechniqueBase) >> kTechniqueShift) & kTechniqueMask) == kTechniqueMain && !IsWorldMapOpen()) {
         const auto& settings = Settings::GetFastSnapshot();
         const auto* waterSystem = RE::TESWaterSystem::GetSingleton();
-        if (settings.enabled && settings.realisticDistantWater && !settings.removeScreenSpaceReflections && !(waterSystem && waterSystem->playerUnderwater)) {
-            SsrFade::Apply(waterShaderProp->plane.constant);
+        const auto* screenReflections = ScreenReflectionSetting();
+        if (settings.enabled && settings.realisticDistantWater && !settings.removeScreenSpaceReflections && (!screenReflections || *screenReflections > 0.0f) &&
+            !(waterSystem && waterSystem->playerUnderwater)) {
+            const auto* fadeMaterial = static_cast<const RE::BSWaterShaderMaterial*>(waterShaderProp->material);
+            SsrFade::Apply(waterShaderProp->plane.constant, fadeMaterial ? fadeMaterial->noiseFalloff : 4007.0f);
             if (const auto* camera = RE::Main::WorldRootCamera(); camera && a_pass->geometry && std::abs(waterShaderProp->plane.normal.z - 1.0f) < 1e-3f) {
                 const auto& bound = a_pass->geometry->worldBound;
                 SsrFade::NoteWater(camera->world.translate.GetDistance(bound.center) - bound.radius, waterShaderProp->plane.constant);
