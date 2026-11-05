@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.6.4
+
+### Changed
+
+- The screen-space reflection fade of Realistic Distant Water now starts at each water type's own
+  distance from its record (noise falloff), with the game's own formula, instead of one fixed
+  distance for all water. Lakes and the sea look the same; water with another value, such as
+  Whiterun's or interior water, now fades as in vanilla.
+- The reflection fade does less work: it is skipped when `fWaterSSRIntensity` is 0, rays stop at
+  8,192 units, and rays pointing up from above all nearby water are not traced.
+
 ## 1.6.3
 
 ### Fixed
