@@ -1322,8 +1322,7 @@ namespace Menu
 				ImGui::Checkbox("Remove Screen-Space Reflections", &settings.removeScreenSpaceReflections);
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip(
-						"Water reflects no screen-space reflections, only the sky (cubemap).\n"
-						"Removes their flicker on far water.");
+						"Water reflects no screen-space reflections, only the sky (cubemap).");
 				}
 
 				if (featureTable) ImGui::TableNextColumn();
