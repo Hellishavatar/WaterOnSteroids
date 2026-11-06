@@ -9,7 +9,8 @@
   distance for all water. Lakes and the sea look the same; water with another value, such as
   Whiterun's or interior water, now fades as in vanilla.
 - The reflection fade does less work: it is skipped when `fWaterSSRIntensity` is 0, rays stop at
-  8,192 units, and rays pointing up from above all nearby water are not traced.
+  8,192 units, rays pointing up from above all nearby water are not traced, and same-size
+  reflection images are drawn together, so each pixel is traced once.
 
 ## 1.6.3
 
